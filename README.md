@@ -154,7 +154,7 @@ flowchart LR
     P2 -.-> CHECK
 ```
 
-Only phone numbers listed in `channels.whatsapp.allowFrom` (or the SMS equivalent) can trigger the agent. Use a **dedicated assistant number**, not your personal WhatsApp account.
+Only phone numbers listed in `channels.whatsapp.allowFrom` can command the agent. The bot should use its **own WhatsApp number**; your personal number goes in the allowlist. See [WhatsApp setup](#whatsapp-setup).
 
 ---
 
@@ -164,8 +164,62 @@ Only phone numbers listed in `channels.whatsapp.allowFrom` (or the SMS equivalen
 - **Google Gemini API key** — [Google AI Studio](https://aistudio.google.com/apikey)
 - **Google Cloud project** with OAuth credentials for Workspace APIs (Gmail, Calendar, Drive, Docs)
 - **Dedicated bot Gmail** for Google Workspace — **not** your personal account ([why?](docs/google-workspace.md))
-- **Dedicated phone number** for WhatsApp (prepaid SIM, eSIM, or virtual number)
+- **WhatsApp** — see [WhatsApp setup](#whatsapp-setup) below (not a second daily phone; you need a **second WhatsApp number** for the bot identity)
 - **Optional:** Aviation or flight-search API keys; otherwise the agent uses web search
+
+---
+
+## WhatsApp setup
+
+OpenClaw talks to WhatsApp the same way **WhatsApp Web** does: it links as a “linked device” to a WhatsApp **account**. The QR step in `make whatsapp-login` is that link — scan it with the phone that is logged into **the account you want the bot to use**.
+
+There is no special “assistant phone” hardware. What you need is two **roles**, which can overlap depending on your setup:
+
+| Role | What it is | Example |
+|---|---|---|
+| **Bot identity** | The WhatsApp *account* OpenClaw logs in as — this number receives commands and sends replies | `+1-555-0100` |
+| **Your phone** | The number in `WHATSAPP_ALLOW_FROM` — the only number allowed to *command* the bot | `+1-555-0199` (your personal mobile) |
+
+**Typical flow (recommended):** you text the **bot number** from **your personal phone**. The bot never needs to touch your personal WhatsApp account.
+
+```mermaid
+sequenceDiagram
+    participant You as Your phone (+1-0199)
+    participant Bot as Bot WhatsApp (+1-0100)
+    participant OC as OpenClaw container
+
+    Note over Bot,OC: make whatsapp-login links bot account via QR (once)
+    You->>Bot: "What's on my calendar?"
+    Bot->>OC: inbound message (allowFrom match)
+    OC->>Bot: reply
+    Bot->>You: "Tomorrow: standup 9am…"
+```
+
+### Do I need a second physical phone?
+
+**No.** You need a **second phone number** registered with WhatsApp for the bot — not a second device you carry every day.
+
+Ways people do that:
+
+| Approach | Notes |
+|---|---|
+| **Prepaid SIM / eSIM** (~$5–10/mo) | Register WhatsApp once on any phone, run `make whatsapp-login`, then the SIM can live in a drawer. Session persists in `data/`. |
+| **WhatsApp second account** (same phone) | Many phones support two WhatsApp accounts if you have a second number (eSIM, work line, etc.). |
+| **Old phone on Wi‑Fi** | Register the bot number once, scan QR, stash the phone — only needed again if the session breaks. |
+| **Link your personal WhatsApp** | Technically works — scan QR on your daily phone. **Not recommended:** the bot sends messages *as you* to all your contacts. See security section. |
+
+### What `make whatsapp-login` actually does
+
+1. OpenClaw prints a QR code in the terminal.
+2. On the phone logged into the **bot’s** WhatsApp account: **Settings → Linked devices → Link a device** → scan.
+3. Session is saved under `data/` — you don’t keep scanning unless it expires.
+
+Set `WHATSAPP_ALLOW_FROM` in `.env` to **your** personal number (E.164, e.g. `+15551234567`), then `make sync-config`.
+
+### Don’t have a second number?
+
+- **Telegram** is the usual alternative — bot token, no extra SIM. OpenClaw supports it natively (`openclaw channels add --channel telegram`).
+- **SMS/Twilio** is on the [roadmap](TODO.md) for this repo.
 
 ---
 
@@ -183,7 +237,7 @@ make onboard                  # one-time: writes data/openclaw.json
 make up
 make logs                     # wait for healthy gateway
 
-make whatsapp-login           # QR scan with assistant phone
+make whatsapp-login           # link bot WhatsApp account (scan QR — see WhatsApp setup)
 # Control UI: http://127.0.0.1:18789 — paste OPENCLAW_GATEWAY_TOKEN from .env
 ```
 

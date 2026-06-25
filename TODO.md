@@ -17,7 +17,7 @@ make onboard                 # one-time OpenClaw setup (writes data/openclaw.jso
 make up                      # start gateway
 make logs                    # confirm gateway is healthy
 
-make whatsapp-login          # scan QR with your *assistant* phone (not personal WA)
+make whatsapp-login          # link bot WhatsApp account via QR (see README → WhatsApp setup)
 # Open http://127.0.0.1:18789 — paste OPENCLAW_GATEWAY_TOKEN from .env
 
 # Message the assistant number from a phone in WHATSAPP_ALLOW_FROM
