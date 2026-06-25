@@ -1,0 +1,186 @@
+{
+  // ---------------------------------------------------------------------------
+  // Editor — shared defaults for this repo
+  // ---------------------------------------------------------------------------
+  "editor.formatOnSave": true,
+  "editor.trimAutoWhitespace": true,
+  "editor.rulers": [80, 120],
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.wordBasedSuggestions": "off",
+  "editor.linkedEditing": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.minimap.enabled": true,
+  "editor.renderWhitespace": "boundary",
+  "editor.suggestSelection": "first",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.eol": "\n",
+
+  // ---------------------------------------------------------------------------
+  // Files — associations, excludes, and secrets hygiene
+  // ---------------------------------------------------------------------------
+  "files.associations": {
+    ".env": "dotenv",
+    ".env.*": "dotenv",
+    "Dockerfile*": "dockerfile",
+    "docker-compose*.yml": "dockercompose",
+    "docker-compose*.yaml": "dockercompose",
+    "Makefile": "makefile"
+  },
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  },
+  "files.watcherExclude": {
+    "**/data/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
+
+  // ---------------------------------------------------------------------------
+  // Search — keep runtime data and secrets out of global search
+  // ---------------------------------------------------------------------------
+  "search.exclude": {
+    "**/data/**": true,
+    ".env": true,
+    "**/node_modules/**": true
+  },
+
+  // ---------------------------------------------------------------------------
+  // Git
+  // ---------------------------------------------------------------------------
+  "git.ignoreLimitWarning": true,
+  "git.repositoryScanMaxDepth": 1,
+
+  // ---------------------------------------------------------------------------
+  // Terminal — always start in the project root
+  // ---------------------------------------------------------------------------
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+  // ---------------------------------------------------------------------------
+  // Markdown — README with Mermaid diagrams
+  // ---------------------------------------------------------------------------
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    },
+    "editor.formatOnSave": false
+  },
+  "markdown.preview.breaks": true,
+  "markdown.validate.enabled": true,
+
+  // ---------------------------------------------------------------------------
+  // YAML — docker-compose.yml
+  // ---------------------------------------------------------------------------
+  "[yaml]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.autoIndent": "advanced"
+  },
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/compose-spec/compose-go/master/schema/compose-spec.json": [
+      "docker-compose*.yml",
+      "docker-compose*.yaml"
+    ]
+  },
+  "yaml.format.enable": true,
+  "yaml.format.singleQuote": false,
+
+  // ---------------------------------------------------------------------------
+  // Docker
+  // ---------------------------------------------------------------------------
+  "[dockerfile]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "[dockercompose]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "docker.showStartPage": false,
+
+  // ---------------------------------------------------------------------------
+  // Makefile — tabs, not spaces
+  // ---------------------------------------------------------------------------
+  "[makefile]": {
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4
+  },
+
+  // ---------------------------------------------------------------------------
+  // Dotenv — .env / .env.example
+  // ---------------------------------------------------------------------------
+  "[dotenv]": {
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "on"
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Spell check — project-specific vocabulary
+  // ---------------------------------------------------------------------------
+  "cSpell.language": "en",
+  "cSpell.enabled": true,
+  "cSpell.allowCompoundWords": true,
+  "cSpell.ignorePaths": [
+    ".git",
+    "data/**",
+    "LICENSE",
+    "node_modules/**"
+  ],
+  "cSpell.words": [
+    "allowFrom",
+    "allowlist",
+    "allowlisted",
+    "autonumber",
+    "aviationstack",
+    "bierner",
+    "clawhub",
+    "davidanson",
+    "dockercompose",
+    "Dockerized",
+    "dotenv",
+    "E164",
+    "envfile",
+    "gemini",
+    "ghcr",
+    "GOCSPX",
+    "googleusercontent",
+    "GOG",
+    "gogcli",
+    "keyring",
+    "healthz",
+    "jsonfile",
+    "mermaid",
+    "openclaw",
+    "OpenClaw",
+    "openclawgateway",
+    "prepended",
+    "Twilio",
+    "whatsapp",
+    "WhatsApp",
+    "workspacefolder",
+    "yzhang"
+  ],
+
+  // ---------------------------------------------------------------------------
+  // Cursor — workspace context hints (Cursor + VS Code compatible where noted)
+  // ---------------------------------------------------------------------------
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    ".env": ".env.*",
+    "docker-compose.yml": "docker-compose.*.yml, Dockerfile*",
+    "README.md": "LICENSE, .gitignore, Makefile"
+  }
+}

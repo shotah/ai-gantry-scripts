@@ -1,0 +1,41 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Google OAuth
+**/credentials.json
+**/token.json
+data/google/credentials.json
+data/google/token.json
+
+# Persistent runtime data
+data/
+!data/.gitkeep
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE (keep shared settings, ignore local overrides)
+.vscode/*.local.*
+.idea/
+
+# Node (if running OpenClaw tooling locally)
+node_modules/
+
+# Temp
+tmp/
+*.tmp
+*.swp
+*~

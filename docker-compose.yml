@@ -1,0 +1,57 @@
+services:
+  openclaw:
+    build:
+      context: .
+      args:
+        OPENCLAW_BASE: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    image: docker-open-claw:latest
+    container_name: openclaw
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOME: /home/node
+      NODE_ENV: production
+      TZ: ${TZ:-UTC}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENCLAW_MODEL: ${OPENCLAW_MODEL:-google/gemini-2.5-pro}
+      OPENCLAW_GATEWAY_BIND: ${OPENCLAW_GATEWAY_BIND:-lan}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_GATEWAY_PASSWORD: ${OPENCLAW_GATEWAY_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOG_ACCOUNT: ${GOG_ACCOUNT:-}
+      GOG_KEYRING_BACKEND: ${GOG_KEYRING_BACKEND:-file}
+      GOG_KEYRING_PASSWORD: ${GOG_KEYRING_PASSWORD:-}
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./data}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./data/workspace}:/home/node/.openclaw/workspace
+      - ./data/google:/home/node/.config/gogcli
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

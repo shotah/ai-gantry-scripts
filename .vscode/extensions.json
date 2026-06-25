@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+    "ms-vscode.makefile-tools",
+    "mikestead.dotenv",
+    "bierner.markdown-mermaid",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "streetsidesoftware.code-spell-checker",
+    "editorconfig.editorconfig"
+  ],
+  "unwantedRecommendations": []
+}
