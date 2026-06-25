@@ -17,7 +17,7 @@ make onboard                 # one-time OpenClaw setup (writes data/openclaw.jso
 make up                      # start gateway
 make logs                    # confirm gateway is healthy
 
-make whatsapp-login          # link bot WhatsApp account via QR (see README → WhatsApp setup)
+make whatsapp-login          # scan QR → Message yourself chat (docs/whatsapp.md)
 # Open http://127.0.0.1:18789 — paste OPENCLAW_GATEWAY_TOKEN from .env
 
 # Message the assistant number from a phone in WHATSAPP_ALLOW_FROM
@@ -74,7 +74,7 @@ These are the things that **don't auto-magic yet** — you do them once by hand 
 |---|---|---|
 | **First-run onboard** | Gateway won't have model/auth config until onboard runs | `make onboard` (once) |
 | **Paid flight APIs** | Live tracking / price alerts need extra keys | `flights-search` is free; see [docs/flights.md](docs/flights.md) upgrades |
-| **SMS / Twilio** | Env vars documented, channel not wired | WhatsApp first; Twilio later |
+| **SMS / Twilio** | Not implemented | Use WhatsApp or Telegram — [docs/whatsapp.md](docs/whatsapp.md) |
 | **Image pin** | `latest` can break on upstream regressions | Set `OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.3.7` in `.env` for production |
 
 ---

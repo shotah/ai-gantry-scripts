@@ -1,6 +1,6 @@
 # docker_open_claw
 
-A Dockerized [OpenClaw](https://github.com/openclaw/openclaw) personal assistant powered by **Google Gemini**, reachable over **WhatsApp** or **SMS**. Message the bot from your phone to manage Google Workspace (Gmail, Calendar, Docs), research flights, and run general research tasks — all through natural-language chat.
+A Dockerized [OpenClaw](https://github.com/openclaw/openclaw) personal assistant powered by **Google Gemini**, reachable over **WhatsApp** (linked device in the app — no SMS required). Message it to manage Google Workspace (Gmail, Calendar, Docs), research flights, and run general tasks through natural-language chat.
 
 > **Status:** Runnable Docker wrapper around upstream OpenClaw. The Makefile orchestrates first-run setup; OpenClaw itself owns config, skills, and OAuth. See [How setup works](#how-setup-works) and [TODO.md](TODO.md) for remaining gaps.
 
@@ -26,7 +26,7 @@ The assistant runs 24/7 inside a container. You talk to it through a messaging c
 ```mermaid
 flowchart TB
     subgraph User["Your phone"]
-        WA[WhatsApp / SMS]
+        WA[WhatsApp]
     end
 
     subgraph Docker["docker_open_claw container"]
@@ -58,7 +58,7 @@ flowchart TB
 
 | Component | Role |
 |---|---|
-| **OpenClaw Gateway** | Receives inbound WhatsApp/SMS messages, routes them to the agent, and sends replies back. |
+| **OpenClaw Gateway** | Receives inbound WhatsApp messages, routes them to the agent, and sends replies back. |
 | **Agent (Gemini)** | Interprets intent, plans multi-step actions, and selects the right skills. |
 | **Skills** | Concrete integrations — Gmail send, Calendar create, flight search, web browse, etc. |
 | **Persistent workspace** | Stores `openclaw.json`, OAuth tokens, WhatsApp session, and conversation history across restarts. |
@@ -72,7 +72,7 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as You (WhatsApp/SMS)
+    actor User as You (WhatsApp)
     participant GW as OpenClaw Gateway
     participant AG as Gemini Agent
     participant SK as Skills
@@ -86,7 +86,7 @@ sequenceDiagram
     API-->>SK: Event created + invite sent
     SK-->>AG: Tool result
     AG->>GW: "Done — dentist added Fri 2pm. Invite sent."
-    GW->>User: Reply via WhatsApp/SMS
+    GW->>User: Reply via WhatsApp
 ```
 
 ### Multi-step workflow (email + calendar)
@@ -154,7 +154,7 @@ flowchart LR
     P2 -.-> CHECK
 ```
 
-Only phone numbers listed in `channels.whatsapp.allowFrom` can command the agent. The bot should use its **own WhatsApp number**; your personal number goes in the allowlist. See [WhatsApp setup](#whatsapp-setup).
+Only phone numbers listed in `channels.whatsapp.allowFrom` can command the agent. Easiest setup: link your account and use **Message yourself** — see [docs/whatsapp.md](docs/whatsapp.md).
 
 ---
 
@@ -164,62 +164,26 @@ Only phone numbers listed in `channels.whatsapp.allowFrom` can command the agent
 - **Google Gemini API key** — [Google AI Studio](https://aistudio.google.com/apikey)
 - **Google Cloud project** with OAuth credentials for Workspace APIs (Gmail, Calendar, Drive, Docs)
 - **Dedicated bot Gmail** for Google Workspace — **not** your personal account ([why?](docs/google-workspace.md))
-- **WhatsApp** — see [WhatsApp setup](#whatsapp-setup) below (not a second daily phone; you need a **second WhatsApp number** for the bot identity)
+- **WhatsApp** — [docs/whatsapp.md](docs/whatsapp.md). Easiest: link your account + **Message yourself** (no second number). SMS not used.
 - **Optional:** [Flight search](docs/flights.md) via `make flights-setup` (no API key); paid APIs later if needed
 
 ---
 
 ## WhatsApp setup
 
-OpenClaw talks to WhatsApp the same way **WhatsApp Web** does: it links as a “linked device” to a WhatsApp **account**. The QR step in `make whatsapp-login` is that link — scan it with the phone that is logged into **the account you want the bot to use**.
+Full guide: **[docs/whatsapp.md](docs/whatsapp.md)**
 
-There is no special “assistant phone” hardware. What you need is two **roles**, which can overlap depending on your setup:
+**Fastest path (one phone, no SMS):**
 
-| Role | What it is | Example |
-|---|---|---|
-| **Bot identity** | The WhatsApp *account* OpenClaw logs in as — this number receives commands and sends replies | `+1-555-0100` |
-| **Your phone** | The number in `WHATSAPP_ALLOW_FROM` — the only number allowed to *command* the bot | `+1-555-0199` (your personal mobile) |
+1. Set `WHATSAPP_ALLOW_FROM=+1YOURNUMBER` in `.env`
+2. `make whatsapp-login` → scan QR on your phone (**Settings → Linked devices**)
+3. Chat in WhatsApp → **Message yourself**
 
-**Typical flow (recommended):** you text the **bot number** from **your personal phone**. The bot never needs to touch your personal WhatsApp account.
+OpenClaw is a **linked device** on your account — like WhatsApp Web. No second SIM required for trying it out.
 
-```mermaid
-sequenceDiagram
-    participant You as Your phone (+1-0199)
-    participant Bot as Bot WhatsApp (+1-0100)
-    participant OC as OpenClaw container
+**Optional upgrade:** separate bot WhatsApp number (prepaid/eSIM) if you want the assistant on its own identity — see Path B in the guide.
 
-    Note over Bot,OC: make whatsapp-login links bot account via QR (once)
-    You->>Bot: "What's on my calendar?"
-    Bot->>OC: inbound message (allowFrom match)
-    OC->>Bot: reply
-    Bot->>You: "Tomorrow: standup 9am…"
-```
-
-### Do I need a second physical phone?
-
-**No.** You need a **second phone number** registered with WhatsApp for the bot — not a second device you carry every day.
-
-Ways people do that:
-
-| Approach | Notes |
-|---|---|
-| **Prepaid SIM / eSIM** (~$5–10/mo) | Register WhatsApp once on any phone, run `make whatsapp-login`, then the SIM can live in a drawer. Session persists in `data/`. |
-| **WhatsApp second account** (same phone) | Many phones support two WhatsApp accounts if you have a second number (eSIM, work line, etc.). |
-| **Old phone on Wi‑Fi** | Register the bot number once, scan QR, stash the phone — only needed again if the session breaks. |
-| **Link your personal WhatsApp** | Technically works — scan QR on your daily phone. **Not recommended:** the bot sends messages *as you* to all your contacts. See security section. |
-
-### What `make whatsapp-login` actually does
-
-1. OpenClaw prints a QR code in the terminal.
-2. On the phone logged into the **bot’s** WhatsApp account: **Settings → Linked devices → Link a device** → scan.
-3. Session is saved under `data/` — you don’t keep scanning unless it expires.
-
-Set `WHATSAPP_ALLOW_FROM` in `.env` to **your** personal number (E.164, e.g. `+15551234567`), then `make sync-config`.
-
-### Don’t have a second number?
-
-- **Telegram** is the usual alternative — bot token, no extra SIM. OpenClaw supports it natively (`openclaw channels add --channel telegram`).
-- **SMS/Twilio** is on the [roadmap](TODO.md) for this repo.
+SMS / Twilio is **not implemented**; ignore SMS vars in `.env.example`.
 
 ---
 
@@ -237,7 +201,7 @@ make onboard                  # one-time: writes data/openclaw.json
 make up
 make logs                     # wait for healthy gateway
 
-make whatsapp-login           # link bot WhatsApp account (scan QR — see WhatsApp setup)
+make whatsapp-login           # scan QR — then use Message yourself (see docs/whatsapp.md)
 # Control UI: http://127.0.0.1:18789 — paste OPENCLAW_GATEWAY_TOKEN from .env
 ```
 
@@ -355,20 +319,29 @@ Configuration is supplied via a `.env` file at the project root. The container r
 
 ### Messaging — WhatsApp
 
-| Variable | Required | Description |
-|---|---|---|
-| `WHATSAPP_ALLOW_FROM` | Yes | Comma-separated E.164 numbers — synced to `openclaw.json` via `make sync-config` |
-| `WHATSAPP_ENABLED` | No | Enable WhatsApp channel (default: `true`) |
-
-### Messaging — SMS (alternative)
+See [docs/whatsapp.md](docs/whatsapp.md). SMS is **not** used by this repo.
 
 | Variable | Required | Description |
 |---|---|---|
-| `SMS_PROVIDER` | No | Provider name, e.g. `twilio` |
-| `TWILIO_ACCOUNT_SID` | If SMS | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | If SMS | Twilio auth token |
-| `TWILIO_PHONE_NUMBER` | If SMS | Twilio number the bot sends from |
-| `SMS_ALLOW_FROM` | If SMS | Comma-separated numbers allowed to message the bot |
+| `WHATSAPP_ALLOW_FROM` | Yes* | Your number (E.164) — only this number can command the bot; synced via `make sync-config` |
+| `WHATSAPP_ENABLED` | No | Default `true`; set `false` to disable WhatsApp |
+
+\*For Path A (Message yourself), this is your own mobile number.
+
+<details>
+<summary>SMS / Twilio (optional — not implemented)</summary>
+
+Future placeholder only. Leave blank.
+
+| Variable | Description |
+|---|---|
+| `SMS_PROVIDER` | e.g. `twilio` |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `TWILIO_PHONE_NUMBER` | Twilio send-from number |
+| `SMS_ALLOW_FROM` | Allowlisted command numbers |
+
+</details>
 
 ### Google Workspace (gog skill)
 
@@ -458,8 +431,8 @@ mindmap
       Drive search
       Docs summarize
     Messaging
-      WhatsApp
-      SMS Twilio
+      WhatsApp linked device
+      Telegram optional
     Research
       Web search
       Browser automation
@@ -541,8 +514,9 @@ docker_open_claw/
 │   └── sync-config.js       # .env → openclaw.json merge
 ├── .env.example             # Template — copy via make env
 ├── docs/
-│   ├── google-workspace.md  # Dedicated Gmail + OAuth guide
-│   └── flights.md           # Flight search (flights-search skill)
+│   ├── whatsapp.md          # WhatsApp — Message yourself (easiest) or second number
+│   ├── google-workspace.md  # Dedicated Gmail + OAuth
+│   └── flights.md           # Flight search skill
 ├── config/google/           # Docs only; creds go in data/google/
 └── data/                    # Gitignored runtime state (volume mounts)
     ├── openclaw.json        # Created by make onboard
