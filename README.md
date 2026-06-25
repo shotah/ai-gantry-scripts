@@ -165,7 +165,7 @@ Only phone numbers listed in `channels.whatsapp.allowFrom` can command the agent
 - **Google Cloud project** with OAuth credentials for Workspace APIs (Gmail, Calendar, Drive, Docs)
 - **Dedicated bot Gmail** for Google Workspace — **not** your personal account ([why?](docs/google-workspace.md))
 - **WhatsApp** — see [WhatsApp setup](#whatsapp-setup) below (not a second daily phone; you need a **second WhatsApp number** for the bot identity)
-- **Optional:** Aviation or flight-search API keys; otherwise the agent uses web search
+- **Optional:** [Flight search](docs/flights.md) via `make flights-setup` (no API key); paid APIs later if needed
 
 ---
 
@@ -250,6 +250,12 @@ make restart
 make google-setup             # install gog skill
 make google-auth              # OAuth — sign in as the bot Gmail
 make google-status
+```
+
+**Flights** (optional, no API key): [docs/flights.md](docs/flights.md)
+
+```bash
+make flights-setup            # Google Flights search via flights-search skill
 ```
 
 Run `make help` for all commands.
@@ -378,16 +384,19 @@ Install OAuth client JSON with `make google-credentials SRC=/path/to/client_secr
 
 **Google Cloud setup:** full walkthrough in [docs/google-workspace.md](docs/google-workspace.md).
 
-### Flight research (optional)
+### Flight research
+
+Default: **`make flights-setup`** installs the [`flights-search`](docs/flights.md) skill (Google Flights–style data, **no API key**).
 
 | Variable | Required | Description |
 |---|---|---|
-| `FLIGHT_API_KEY` | No | Key for a flight/aviation data provider |
-| `FLIGHT_API_PROVIDER` | No | Provider identifier, e.g. `amadeus`, `aviationstack` |
-| `GOOGLE_CUSTOM_SEARCH_KEY` | No | Fallback: Custom Search for web-based flight queries |
+| `SEARCHAPI_KEY` | No | Paid upgrade — SearchAPI.io + `google-flights-search` skill |
+| `FLIGHT_API_KEY` | No | Paid upgrade — Amadeus, Aviationstack, etc. |
+| `FLIGHT_API_PROVIDER` | No | Provider identifier for paid API |
+| `GOOGLE_CUSTOM_SEARCH_KEY` | No | Legacy fallback for web search |
 | `GOOGLE_CUSTOM_SEARCH_CX` | No | Custom Search engine ID |
 
-When no flight API is configured, the agent falls back to web search and browser skills.
+When no flight skill is installed, the agent can still use bundled web search / browser skills (less reliable for fares).
 
 ### Example `.env`
 
@@ -407,9 +416,7 @@ WHATSAPP_ALLOW_FROM=+15551234567
 GOG_ACCOUNT=yourname-openclaw@gmail.com
 GOG_KEYRING_PASSWORD=change-me
 
-# --- Flight (optional) ---
-FLIGHT_API_PROVIDER=amadeus
-FLIGHT_API_KEY=your-key-here
+# --- Flights: make flights-setup (no key). Paid upgrades optional ---
 ```
 
 ---
@@ -464,10 +471,11 @@ mindmap
 
 | Skill | Install | Purpose |
 |---|---|---|
-| `gog` | `make google-setup` (runs `clawhub install gog`) | Gmail, Calendar, Drive, Docs via OAuth |
+| `gog` | `make google-setup` | Gmail, Calendar, Drive, Docs via OAuth |
+| `flights-search` | `make flights-setup` | Google Flights search — **no API key** |
 | `web-search` | bundled / clawhub | General research |
-| `browser` | bundled | Scrape pages, flight search fallback |
-| Custom flight skill | TBD | Structured fare queries via API |
+| `browser` | bundled | Scrape pages, fallback |
+| `google-flights-search` | clawhub (needs `SEARCHAPI_KEY`) | Paid structured Google Flights JSON |
 
 ---
 
@@ -533,7 +541,8 @@ docker_open_claw/
 │   └── sync-config.js       # .env → openclaw.json merge
 ├── .env.example             # Template — copy via make env
 ├── docs/
-│   └── google-workspace.md  # Dedicated Gmail + OAuth guide
+│   ├── google-workspace.md  # Dedicated Gmail + OAuth guide
+│   └── flights.md           # Flight search (flights-search skill)
 ├── config/google/           # Docs only; creds go in data/google/
 └── data/                    # Gitignored runtime state (volume mounts)
     ├── openclaw.json        # Created by make onboard
@@ -554,8 +563,8 @@ See [TODO.md](TODO.md) for the living checklist. Summary:
 - [x] Google Workspace via gog skill + [docs/google-workspace.md](docs/google-workspace.md)
 - [x] Health checks + persistent volumes
 - [x] `.env` → `openclaw.json` sync (`make sync-config`)
+- [x] Flight search via `flights-search` + [docs/flights.md](docs/flights.md)
 - [ ] SMS / Twilio channel
-- [ ] Flight API skill
 - [ ] CI (compose validate, hadolint)
 
 ---

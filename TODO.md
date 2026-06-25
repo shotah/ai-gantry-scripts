@@ -40,6 +40,16 @@ make google-status           # confirm connected
 
 Optional: share a personal calendar *into* the bot account so it sees your real schedule without OAuth on your primary inbox.
 
+### Flights (Google Flights search)
+
+No API key for the default path. See [docs/flights.md](docs/flights.md).
+
+```bash
+make flights-setup            # after make up
+```
+
+Try: *"Find nonstop SFO to JFK next Friday under $400"*
+
 ---
 
 ## What's already done
@@ -52,6 +62,7 @@ Optional: share a personal calendar *into* the bot account so it sees your real 
 - [x] Persistent `data/` layout for config, workspace, Google creds
 - [x] **Google Workspace guide** — [docs/google-workspace.md](docs/google-workspace.md)
 - [x] **Make targets** — `google-credentials`, `google-setup`, `google-auth`, `google-status`
+- [x] **Flight search** — [docs/flights.md](docs/flights.md), `make flights-setup`
 
 ---
 
@@ -62,7 +73,7 @@ These are the things that **don't auto-magic yet** — you do them once by hand 
 | Gap | Impact | Workaround |
 |---|---|---|
 | **First-run onboard** | Gateway won't have model/auth config until onboard runs | `make onboard` (once) |
-| **Flight APIs** | No custom skill yet | Agent can still web-search; dedicated skill TBD |
+| **Paid flight APIs** | Live tracking / price alerts need extra keys | `flights-search` is free; see [docs/flights.md](docs/flights.md) upgrades |
 | **SMS / Twilio** | Env vars documented, channel not wired | WhatsApp first; Twilio later |
 | **Image pin** | `latest` can break on upstream regressions | Set `OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.3.7` in `.env` for production |
 
@@ -79,8 +90,8 @@ These are the things that **don't auto-magic yet** — you do them once by hand 
 
 ### Integrations
 
-- [ ] Flight API skill or documented Custom Search fallback
 - [ ] Optional Twilio SMS channel in compose
+- [ ] Paid flight upgrades (SearchAPI / Amadeus) if needed
 
 ### Ops & quality
 
@@ -91,7 +102,6 @@ These are the things that **don't auto-magic yet** — you do them once by hand 
 ### Nice to have
 
 - [ ] `.vscode/tasks.json` — Run `make up`, `make logs` from command palette
-- [ ] Chromium / browser skill extras in Dockerfile (for flight scraping)
 
 ---
 
@@ -118,5 +128,6 @@ Come back and check off what worked:
 - [ ] Dedicated bot Gmail created (not personal)
 - [ ] Google OAuth connected (`make google-status`)
 - [ ] Calendar / Gmail test from WhatsApp
+- [ ] Flight search test from WhatsApp (`make flights-setup`)
 
 Note any breakage here or open an issue — that's how the TODO list shrinks.

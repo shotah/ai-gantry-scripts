@@ -26,7 +26,8 @@ else
 endif
 
 .PHONY: help env env-force init dirs build build-no-cache pull onboard sync-config up down restart logs ps shell \
-        whatsapp-login google-check google-credentials google-install google-setup google-auth google-status clean
+        whatsapp-login google-check google-credentials google-install google-setup google-auth google-status \
+        flights-setup clean
 
 help: ## Show available commands
 	@echo.
@@ -53,9 +54,10 @@ init: env dirs ## First-time setup: create .env and data directories
 	@echo.
 	@echo Next steps:
 	@echo   1. Edit .env with your GEMINI_API_KEY and WHATSAPP_ALLOW_FROM
-	@echo   2. Google (optional): docs/google-workspace.md — dedicated bot Gmail + make google-setup
-	@echo   3. make build, then make onboard, then make up
-	@echo   4. make whatsapp-login
+	@echo   2. Google (optional): docs/google-workspace.md — make google-setup
+	@echo   3. Flights (optional): docs/flights.md — make flights-setup
+	@echo   4. make build, then make onboard, then make up
+	@echo   5. make whatsapp-login
 	@echo.
 
 build: ## Build the Docker image
@@ -140,6 +142,14 @@ google-auth: google-check ## OAuth login for GOG_ACCOUNT (interactive)
 
 google-status: ## Show gog OAuth connection status
 	$(COMPOSE) exec $(SERVICE) sh -c 'gog auth status || true'
+
+flights-setup: ## Install flights-search skill (Google Flights, no API key)
+	$(COMPOSE) exec $(SERVICE) sh -c "npx --yes clawhub@latest install flights-search"
+	@echo.
+	@echo flights-search skill installed. Try on WhatsApp:
+	@echo   "Find nonstop SFO to JFK next Friday under 400 dollars"
+	@echo.
+	@echo Full guide: docs/flights.md
 
 clean: ## Stop containers and remove built image
 	$(COMPOSE) down --rmi local 2>nul || $(COMPOSE) down --rmi local
