@@ -15,8 +15,11 @@ scripts/deploy-manifest.txt
 docs/telegram.md
 docs/whatsapp.md
 docs/google-workspace.md
+docs/strava.md
 docs/deploy.md
 README.md
 secrets/google/.gitkeep
 secrets/google/credentials.json
 secrets/google/client_secret.json
+secrets/strava/.gitkeep
+secrets/strava/tokens.json

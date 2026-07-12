@@ -16,6 +16,9 @@ enabled = true
 model_provider = "gemini.default"
 risk_profile = "default"
 channels = ["telegram.default"]
+# Grant MCP servers to this agent. ZeroClaw is secure-by-default: servers in
+# [mcp] are registered but only reach an agent via a bundle (see [mcp_bundles]).
+mcp_bundles = ["strava"]
 
 [channels.telegram.default]
 enabled = true
@@ -44,6 +47,55 @@ allowed_services = [
 timeout_secs = 90
 audit_log = true
 
+# Strava workout data via the strava-mcp MCP server (docs/strava.md).
+# ZeroClaw launches the binary over stdio; creds come from the container env
+# (STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET / STRAVA_TOKEN_PATH in .env + compose).
+[mcp]
+enabled = true
+# false = load MCP tool schemas eagerly so the model always sees them.
+# With true, the model must call the built-in `tool_search` to activate MCP
+# tools first; Gemini Flash doesn't reliably do that, so Strava tools appear
+# "missing" and it falls back to Gmail (see docs/strava.md troubleshooting).
+deferred_loading = false
+
+[[mcp.servers]]
+name = "strava"
+transport = "stdio"
+command = "strava-mcp"
+
+# Bundle that grants the "strava" MCP server. Referenced by agents.main.mcp_bundles.
+# Without this grant the agent sees zero Strava tools and improvises (e.g. Gmail).
+[mcp_bundles.strava]
+servers = ["strava"]
+
+# Web access for Tim's `web_fetch` tool. Matching is by domain (exact or
+# subdomain) — no scheme, no path. `blocked_domains` ALWAYS wins over allowed.
+#
+# The widest possible whitelist is just ["*"] (every public site) — that's the
+# default and what we keep here so Tim is never "locked off" and you avoid the
+# onesie-twosie churn. Use `blocked_domains` to ban specific sites.
+#
+# If you ever want the opposite (a strict allowlist — Tim may ONLY reach these),
+# comment out the ["*"] line and uncomment the curated list below.
+[web_fetch]
+allowed_domains = ["*"]
+# allowed_domains = [
+#   "strava.com",
+#   "github.com",
+#   "wikipedia.org",
+#   "arketa.co",              # ROQ / yoga class booking
+#   "boulderingproject.com",  # bouldering gym
+#   # "your-yoga-studio.com", # add your studio's domain
+# ]
+blocked_domains = [
+  # Sites Tim must never fetch, even though allowed_domains = ["*"]:
+  # "facebook.com",
+  # "x.com",
+]
+# Internal/LAN hosts are blocked by default (SSRF protection). List any you
+# want Tim to reach, e.g. a home server: allowed_private_hosts = ["nas.local"]
+# allowed_private_hosts = []
+
 [gateway]
 host = "127.0.0.1"
 port = 42617
@@ -64,4 +116,19 @@ auto_approve = [
   "glob_search",
   "content_search",
   "google_workspace",
+  # strava-mcp tools. auto_approve needs the exact prefixed name
+  # (<server>__<tool>); a bare "strava" does NOT match. Names track
+  # StravaMCP v1.2.0 (docs/strava.md). Authorization is separate: an empty
+  # allowed_tools = no constraint, and the bundle grant makes them visible.
+  "strava__strava_get_activities",
+  "strava__strava_get_activity_by_id",
+  "strava__strava_get_activity_zones",
+  "strava__strava_get_activity_streams",
+  "strava__strava_get_athlete",
+  "strava__strava_get_athlete_stats",
+  "strava__strava_get_club_activities",
+  "strava__strava_get_upload",
+  "strava__strava_create_activity",
+  "strava__strava_update_activity",
+  "strava__strava_create_upload",
 ]

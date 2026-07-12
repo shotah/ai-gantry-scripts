@@ -10,6 +10,11 @@ secrets/google/*
 !secrets/google/.gitkeep
 !secrets/google/.gitignore
 
+# Strava OAuth token (never commit)
+secrets/strava/*
+!secrets/strava/.gitkeep
+!secrets/strava/.gitignore
+
 # Generated config + ZeroClaw pairing/agent state (synced / runtime)
 config/*
 !config/config.toml.example

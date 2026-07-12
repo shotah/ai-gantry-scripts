@@ -22,7 +22,7 @@ else
   REMOTE := bash scripts/remote.sh
 endif
 
-.PHONY: help env env-force dirs init sync-config config build pull up down restart logs ps status shell clean \
+.PHONY: help env env-force dirs init sync-config config build pull up down restart logs ps status shell clean strava-auth \
         remote-check remote-sync remote-up remote-down remote-restart remote-logs remote-ps remote-status \
         remote-pull remote-ssh remote-deploy remote-bind
 
@@ -71,6 +71,7 @@ help: ## Show available commands
 	@echo     status                 zeroclaw health check inside container
 	@echo     shell                  Debug shell (debian image; runtime is distroless)
 	@echo     clean                  Same as down (keeps ./data)
+	@echo     strava-auth            One-time Strava OAuth; writes secrets/strava/tokens.json
 	@echo.
 	@echo   Remote deploy  (needs OpenSSH; see docs/deploy.md)
 	@echo   --------------------------------------------------
@@ -93,6 +94,7 @@ help: ## Show available commands
 	@echo     docs/telegram.md       BotFather + Telegram peers
 	@echo     docs/whatsapp.md       WhatsApp Web friend / group (optional)
 	@echo     docs/google-workspace.md Thin gws image + OAuth (Gmail/Docs/…)
+	@echo     docs/strava.md         Strava workouts via strava-mcp (optional)
 	@echo     docs/deploy.md         Windows -^> Ubuntu remote deploy
 	@echo     README.md              Overview and architecture
 	@echo.
@@ -164,6 +166,10 @@ shell: ## Shell via debian image (distroless has no shell)
 
 clean: ## Stop local containers (keeps ./data)
 	$(COMPOSE) down
+
+strava-auth: ## One-time Strava OAuth in a throwaway container (see docs/strava.md)
+	@echo Opening Strava OAuth. A URL will be printed below — open it in your browser and approve.
+	$(COMPOSE) run --rm --build -p 19876:19876 --entrypoint strava-mcp $(SERVICE) auth
 
 # --- Remote Ubuntu server (from Windows via OpenSSH) -------------------------
 

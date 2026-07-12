@@ -24,6 +24,7 @@ Design goals: **tiny footprint, no inbound ports, one command to deploy.**
 - [How setup works](#how-setup-works)
 - [Documentation](#documentation)
 - [Environment variables](#environment-variables)
+- [Workout coaching (Strava)](#workout-coaching-strava)
 - [Make targets](#make-targets)
 - [Design & efficiency notes](#design--efficiency-notes)
 - [Project layout](#project-layout)
@@ -44,15 +45,19 @@ flowchart LR
   subgraph Host["🐳 container (distroless)"]
     ZC[zeroclaw daemon]
     GWS[gws binary]
+    SM[strava-mcp]
     ZC -->|exec| GWS
+    ZC -->|MCP stdio| SM
   end
 
   ZC -->|HTTPS| GEM[Gemini API]
   GWS -->|OAuth| GW[Gmail · Docs · Calendar · Drive]
+  SM -->|OAuth| STV[Strava]
 
   ZC --- CFG[("./config<br/>config.toml + state")]
   ZC --- DATA[("./data<br/>memory / workspace")]
   GWS --- SEC[("./secrets/google<br/>OAuth token")]
+  SM --- SECS[("./secrets/strava<br/>OAuth token")]
 
   classDef store fill:#161b22,stroke:#30363d,color:#8b949e;
   class CFG,DATA,SEC store;
@@ -165,6 +170,7 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 | 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, schema-v3 `peer_groups` allowlist, `make remote-bind` pairing | **Always** — this is the default channel |
 | 🚀 **[docs/deploy.md](docs/deploy.md)** | Ubuntu server prep, UID/GID ownership, OpenSSH on Windows, the `make remote-*` workflow | Running on a real server |
 | 🗂️ **[docs/google-workspace.md](docs/google-workspace.md)** | Free Cloud project, OAuth scopes, `gws auth login/export`, UTF-8 credential export, smoke tests, troubleshooting | Gmail / Docs / Calendar / Drive access |
+| 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring, Garmin auto-sync, coaching caveats | Workout summaries & training nudges |
 | 💬 **[docs/whatsapp.md](docs/whatsapp.md)** | WhatsApp Web vs Meta Cloud API, "Tim as his own number", peer/group allowlists, easier alternatives (Discord/Slack) | Reaching friends who don't use Telegram |
 
 Supporting files: [`SECURITY.md`](SECURITY.md) (hardening defaults & reporting).
@@ -174,13 +180,15 @@ flowchart LR
   R[README] --> T[telegram.md]
   R --> D[deploy.md]
   R --> G[google-workspace.md]
+  R --> S[strava.md]
   R --> W[whatsapp.md]
   T -. optional .-> W
   D -. secrets sync .-> G
+  D -. secrets sync .-> S
   classDef core fill:#1f6feb22,stroke:#1f6feb,color:#79c0ff;
   classDef opt fill:#6e768122,stroke:#6e7681,color:#8b949e;
   class T,D core;
-  class G,W opt;
+  class G,S,W opt;
 ```
 
 ---
@@ -195,15 +203,41 @@ Set in `.env` (copy from [`.env.example`](.env.example)). Secrets are never comm
 | `GEMINI_MODEL` | — | Default `gemini-3.5-flash` |
 | `TELEGRAM_BOT_TOKEN` | ✅ | From [@BotFather](https://t.me/BotFather) |
 | `TELEGRAM_ALLOWED_USERS` | ✅ | Comma-separated numeric user IDs (become `peer_groups` members) |
+| `STRAVA_CLIENT_ID` | — | Strava API app client ID (see [Workout coaching](#workout-coaching-strava)) |
+| `STRAVA_CLIENT_SECRET` | — | Strava API app client secret |
 | `ZEROCLAW_BASE` | — | Upstream image baked into the build (default `:latest`) |
 | `ZEROCLAW_IMAGE` | — | Local tag after build (default `zeroclaw-gws:local`) |
-| `GWS_VERSION` | — | `gws` release tag (default `v0.22.5`) |
+| `GWS_VERSION` | — | Override the `gws` release tag (default pinned in the `Dockerfile`) |
+| `STRAVA_MCP_VERSION` | — | Override the `strava-mcp` release tag (default pinned in the `Dockerfile`) |
 | `ZEROCLAW_UID` / `ZEROCLAW_GID` | server | Match the server login user (`id -u` / `id -g`) |
 | `DEPLOY_HOST` | remote | Server hostname / IP |
 | `DEPLOY_USER` | remote | SSH user (default `ubuntu`) |
 | `DEPLOY_PATH` | remote | Remote project dir (e.g. `/zeroclaw`) |
 | `DEPLOY_SSH_PORT` | remote | SSH port (default `22`) |
 | `DEPLOY_SSH_KEY` | remote | Path to private key (optional) |
+
+---
+
+## Workout coaching (Strava)
+
+Tim can read your training history to summarize the week and nudge you ("get to the gym" / "rest today"). It uses the [`strava-mcp`](https://github.com/Stealinglight/StravaMCP) server — a single static binary baked into the image (like `gws`) and wired over MCP. Optional.
+
+**Garmin users:** connect the watch to Strava once (Garmin Connect → *Connected Apps* → Strava); activities auto-sync and Tim reads them here — no fragile unofficial Garmin login. Garmin's own API is enterprise-only and currently closed to new sign-ups, so Strava is the robust path.
+
+```bash
+# 1. Create an app at https://www.strava.com/settings/api (callback domain: localhost)
+#    and put the keys in .env:
+#      STRAVA_CLIENT_ID=...
+#      STRAVA_CLIENT_SECRET=...
+# 2. Authorize once on a browser machine (or WSL) — writes secrets/strava/tokens.json:
+STRAVA_TOKEN_PATH="$PWD/secrets/strava/tokens.json" strava-mcp auth
+# 3. Deploy:
+make sync-config && make build && make up      # or: make remote-deploy
+```
+
+> **Rest-day caveat:** HRV / Body Battery / sleep are **Garmin-only** and not exposed via Strava. "Rest today" is inferred from training frequency and load — good coaching, not physiological readiness.
+
+Full guide: **[docs/strava.md](docs/strava.md)**.
 
 ---
 
@@ -227,7 +261,7 @@ make help            # full grouped list
 
 ## Design & efficiency notes
 
-- **Thin image.** Multi-stage build fetches `gws` on Debian trixie (glibc match), then copies just the binary onto upstream distroless — no full OS in the runtime, ~19 MB over the base.
+- **Thin image.** Multi-stage build fetches `gws` and the static `strava-mcp` (~7 MB) binaries, then copies just those onto upstream distroless — no full OS in the runtime.
 - **No published ports.** Telegram polls outbound; the gateway binds `127.0.0.1` only.
 - **Bounded resources.** `mem_limit: 512m`, `cpus: 2.0`, tiny reservation.
 - **Runs as your user.** `ZEROCLAW_UID/GID` match the server login, so bind mounts and pairing state write cleanly (no `chown 65534` dance).
@@ -240,14 +274,17 @@ make help            # full grouped list
 ```
 tim/
 ├── docker-compose.yml         # the ZeroClaw service (no ports, 512M cap)
-├── Dockerfile                 # distroless + gws binary (multi-stage)
+├── Dockerfile                 # distroless + gws + strava-mcp (multi-stage)
 ├── Makefile                   # local + remote targets
 ├── .env.example               # all knobs, documented
 ├── config/
-│   └── config.toml.example    # schema-v3 template (Gemini, Telegram, Workspace)
-├── secrets/google/            # OAuth export for gws (gitignored)
+│   └── config.toml.example    # schema-v3 template (Gemini, Telegram, Workspace, MCP)
+├── secrets/
+│   ├── google/                # OAuth export for gws (gitignored)
+│   └── strava/                # OAuth token for strava-mcp (gitignored)
 ├── scripts/
 │   ├── sync-config.js         # .env → config/config.toml
+│   ├── deploy-manifest.txt    # single source of files to sync
 │   ├── remote.ps1             # Windows → Ubuntu deploy
 │   └── remote.sh              # Linux/WSL → Ubuntu deploy
 ├── docs/
@@ -255,6 +292,7 @@ tim/
 │   ├── telegram.md
 │   ├── deploy.md
 │   ├── google-workspace.md
+│   ├── strava.md
 │   └── whatsapp.md
 └── data/                      # runtime memory/workspace (gitignored)
 ```

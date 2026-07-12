@@ -6,14 +6,24 @@ services:
   zeroclaw:
     build:
       context: .
+      # Defaults live once in the Dockerfile (ARG ...). Listing the names here
+      # (no values) forwards an override from .env / the environment when set,
+      # and otherwise falls back to the Dockerfile default.
       args:
-        ZEROCLAW_BASE: ${ZEROCLAW_BASE:-ghcr.io/zeroclaw-labs/zeroclaw:latest}
-        GWS_VERSION: ${GWS_VERSION:-v0.22.5}
+        - ZEROCLAW_BASE
+        - GWS_VERSION
+        - STRAVA_MCP_VERSION
     image: ${ZEROCLAW_IMAGE:-zeroclaw-gws:local}
     container_name: zeroclaw
     restart: unless-stopped
     # Match the deploy user on the server (id -u / id -g). Avoids UID 65534 data fights.
     user: "${ZEROCLAW_UID:-1000}:${ZEROCLAW_GID:-1000}"
+    # Run from a writable scratch dir. gws writes the empty 204 body of a *delete*
+    # (e.g. `calendar events delete`) to a file in its CWD; the image WORKDIR and the
+    # bind mounts aren't writable by this uid, so that fails with "os error 13
+    # Permission denied" and the delete never lands. A world-writable tmpfs (below)
+    # gives gws somewhere to write, so deletes succeed. See docs/google-workspace.md.
+    working_dir: /zeroclaw-scratch
     env_file:
       - path: .env
         required: false
@@ -31,6 +41,10 @@ services:
       GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND: file
       GOOGLE_WORKSPACE_CLI_CONFIG_DIR: /zeroclaw-data/.config/gws
       GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE: /zeroclaw-data/.config/gws/credentials.json
+      # Strava MCP subprocess inherits these (see docs/strava.md). Token persists on the mount.
+      STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID:-}
+      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:-}
+      STRAVA_TOKEN_PATH: /zeroclaw-data/.config/strava/tokens.json
     volumes:
       # Full .zeroclaw dir (config.toml + pairing/agent state) — owned by deploy user
       - ./config:/zeroclaw-data/.zeroclaw
@@ -38,6 +52,11 @@ services:
       - ./data:/zeroclaw-data/data
       # Google OAuth export (gitignored). Create via docs/google-workspace.md
       - ./secrets/google:/zeroclaw-data/.config/gws
+      # Strava OAuth token (gitignored). Create via docs/strava.md
+      - ./secrets/strava:/zeroclaw-data/.config/strava
+    # Ephemeral, world-writable scratch for gws output files (see working_dir above).
+    tmpfs:
+      - /zeroclaw-scratch:mode=1777
     mem_limit: 512m
     cpus: 2.0
     mem_reservation: 32m
