@@ -25,6 +25,7 @@ Design goals: **tiny footprint, no inbound ports, one command to deploy.**
 - [Documentation](#documentation)
 - [Environment variables](#environment-variables)
 - [Workout coaching (Strava)](#workout-coaching-strava)
+- [Garmin recovery (sleep / weight)](#garmin-recovery-sleep--weight)
 - [Make targets](#make-targets)
 - [Design & efficiency notes](#design--efficiency-notes)
 - [Project layout](#project-layout)
@@ -46,18 +47,22 @@ flowchart LR
     ZC[zeroclaw daemon]
     GWS[gws binary]
     SM[strava-mcp]
+    GM[garmin]
     ZC -->|exec| GWS
     ZC -->|MCP stdio| SM
+    ZC -->|MCP stdio| GM
   end
 
   ZC -->|HTTPS| GEM[Gemini API]
   GWS -->|OAuth| GW[Gmail · Docs · Calendar · Drive]
   SM -->|OAuth| STV[Strava]
+  GM -->|session| GC[Garmin Connect]
 
   ZC --- CFG[("./config<br/>config.toml + state")]
   ZC --- DATA[("./data<br/>memory / workspace")]
   GWS --- SEC[("./secrets/google<br/>OAuth token")]
   SM --- SECS[("./secrets/strava<br/>OAuth token")]
+  GM --- SECG[("./secrets/garmin<br/>session.json")]
 
   classDef store fill:#161b22,stroke:#30363d,color:#8b949e;
   class CFG,DATA,SEC store;
@@ -170,8 +175,8 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 | 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, schema-v3 `peer_groups` allowlist, `make remote-bind` pairing | **Always** — this is the default channel |
 | 🚀 **[docs/deploy.md](docs/deploy.md)** | Ubuntu server prep, UID/GID ownership, OpenSSH on Windows, the `make remote-*` workflow | Running on a real server |
 | 🗂️ **[docs/google-workspace.md](docs/google-workspace.md)** | Free Cloud project, OAuth scopes, `gws auth login/export`, UTF-8 credential export, smoke tests, troubleshooting | Gmail / Docs / Calendar / Drive access |
-| 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring, Garmin auto-sync, coaching caveats | Workout summaries & training nudges |
-| ⌚ **[docs/garmin.md](docs/garmin.md)** | **Proposal** — Garmin MCP vs Strava gaps (sleep, weight, climb grades), pre-built servers, effort | Decide whether to add Garmin Connect |
+| 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring | Workout summaries & training nudges |
+| ⌚ **[docs/garmin.md](docs/garmin.md)** | go-garmin MCP, `make garmin-auth`, sleep / weight / readiness | Physiological recovery + scale weight |
 | 💬 **[docs/whatsapp.md](docs/whatsapp.md)** | Web vs Cloud API (upstream selectors), `mode=personal`, peers/groups, when to skip WhatsApp | Reaching friends who don't use Telegram |
 | 📱 **[docs/sms.md](docs/sms.md)** | **Proposal** — Twilio / Telnyx vs Google Voice / RCS; why GWS ≠ SMS; webhook + 10DLC caveats | Plain SMS texting |
 
@@ -190,7 +195,7 @@ flowchart LR
   W -. related .-> SMS
   D -. secrets sync .-> G
   D -. secrets sync .-> S
-  S -. proposal .-> Ga
+  D -. secrets sync .-> Ga
   classDef core fill:#1f6feb22,stroke:#1f6feb,color:#79c0ff;
   classDef opt fill:#6e768122,stroke:#6e7681,color:#8b949e;
   class T,D core;
@@ -215,6 +220,7 @@ Set in `.env` (copy from [`.env.example`](.env.example)). Secrets are never comm
 | `ZEROCLAW_IMAGE` | — | Local tag after build (default `zeroclaw-gws:local`) |
 | `GWS_VERSION` | — | Override the `gws` release tag (default pinned in the `Dockerfile`) |
 | `STRAVA_MCP_VERSION` | — | Override the `strava-mcp` release tag (default pinned in the `Dockerfile`) |
+| `GARMIN_MCP_REF` | — | Optional go-garmin git commit pin (default in `Dockerfile`) |
 | `ZEROCLAW_UID` / `ZEROCLAW_GID` | server | Match the server login user (`id -u` / `id -g`) |
 | `DEPLOY_HOST` | remote | Server hostname / IP |
 | `DEPLOY_USER` | remote | SSH user (default `ubuntu`) |
@@ -241,9 +247,24 @@ STRAVA_TOKEN_PATH="$PWD/secrets/strava/tokens.json" strava-mcp auth
 make sync-config && make build && make up      # or: make remote-deploy
 ```
 
-> **Rest-day caveat:** HRV / Body Battery / sleep are **Garmin-only** and not exposed via Strava. "Rest today" is inferred from training frequency and load — good coaching, not physiological readiness.
+> **Rest-day caveat (Strava alone):** HRV / Body Battery / sleep are **not** on Strava. For those, wire Garmin — [docs/garmin.md](docs/garmin.md).
 
 Full guide: **[docs/strava.md](docs/strava.md)**.
+
+---
+
+## Garmin recovery (sleep / weight)
+
+Tim can read Garmin Connect for sleep, Index scale weight, Body Battery / HRV, and training readiness via [go-garmin](https://github.com/llehouerou/go-garmin) (`garmin mcp`) — a static Go binary baked into the image. Optional. No API app; one interactive login writes `secrets/garmin/session.json`.
+
+```bash
+make garmin-auth          # interactive email / password / MFA → secrets/garmin/session.json
+make sync-config && make build && make up   # or: make remote-deploy
+```
+
+Ask Tim: “How did I sleep last night?” / “What’s my weight trend?”
+
+Full guide: **[docs/garmin.md](docs/garmin.md)**.
 
 ---
 
@@ -261,13 +282,14 @@ make help            # full grouped list
 | `up` / `down` / `restart` | `remote-up` / `remote-down` / `remote-restart` |
 | `logs` / `ps` / `status` | `remote-logs` / `remote-ps` / `remote-status` |
 | `shell` — debug (debian image) | `remote-bind` — approve a Telegram id |
-| `pull` — upstream base | `remote-ssh [CMD='…']` — run on server |
+| `strava-auth` / `garmin-auth` | `remote-ssh [CMD='…']` — run on server |
+| `pull` — upstream base | |
 
 ---
 
 ## Design & efficiency notes
 
-- **Thin image.** Multi-stage build fetches `gws` and the static `strava-mcp` (~7 MB) binaries, then copies just those onto upstream distroless — no full OS in the runtime.
+- **Thin image.** Multi-stage build fetches `gws`, static `strava-mcp`, and builds static `garmin` (go-garmin), then copies just those onto upstream distroless — no full OS in the runtime.
 - **No published ports.** Telegram polls outbound; the gateway binds `127.0.0.1` only.
 - **Bounded resources.** `mem_limit: 512m`, `cpus: 2.0`, tiny reservation.
 - **Runs as your user.** `ZEROCLAW_UID/GID` match the server login, so bind mounts and pairing state write cleanly (no `chown 65534` dance).
@@ -280,14 +302,15 @@ make help            # full grouped list
 ```
 tim/
 ├── docker-compose.yml         # the ZeroClaw service (no ports, 512M cap)
-├── Dockerfile                 # distroless + gws + strava-mcp (multi-stage)
+├── Dockerfile                 # distroless + gws + strava-mcp + garmin (multi-stage)
 ├── Makefile                   # local + remote targets
 ├── .env.example               # all knobs, documented
 ├── config/
 │   └── config.toml.example    # schema-v3 template (Gemini, Telegram, Workspace, MCP)
 ├── secrets/
 │   ├── google/                # OAuth export for gws (gitignored)
-│   └── strava/                # OAuth token for strava-mcp (gitignored)
+│   ├── strava/                # OAuth token for strava-mcp (gitignored)
+│   └── garmin/                # Connect session for go-garmin (gitignored)
 ├── scripts/
 │   ├── sync-config.js         # .env → config/config.toml
 │   ├── deploy-manifest.txt    # single source of files to sync
@@ -299,7 +322,7 @@ tim/
 │   ├── deploy.md
 │   ├── google-workspace.md
 │   ├── strava.md
-│   ├── garmin.md              # proposal: Garmin MCP (not implemented)
+│   ├── garmin.md              # sleep / weight via go-garmin MCP
 │   ├── sms.md                 # proposal: SMS / Twilio vs Google (not implemented)
 │   └── whatsapp.md
 └── data/                      # runtime memory/workspace (gitignored)

@@ -1,6 +1,6 @@
 # Lean ZeroClaw stack — Gemini + Telegram, no host ports (Telegram polls).
-# Image: distroless upstream + gws binary only (see Dockerfile).
-# Docs: docs/telegram.md, docs/google-workspace.md
+# Image: distroless upstream + gws + strava-mcp + garmin binaries (see Dockerfile).
+# Docs: docs/telegram.md, docs/google-workspace.md, docs/strava.md, docs/garmin.md
 
 services:
   zeroclaw:
@@ -13,6 +13,7 @@ services:
         - ZEROCLAW_BASE
         - GWS_VERSION
         - STRAVA_MCP_VERSION
+        - GARMIN_MCP_REF
     image: ${ZEROCLAW_IMAGE:-zeroclaw-gws:local}
     container_name: zeroclaw
     restart: unless-stopped
@@ -45,6 +46,7 @@ services:
       STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID:-}
       STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:-}
       STRAVA_TOKEN_PATH: /zeroclaw-data/.config/strava/tokens.json
+      # Garmin MCP: no email/password env — session.json on the mount (docs/garmin.md).
     volumes:
       # Full .zeroclaw dir (config.toml + pairing/agent state) — owned by deploy user
       - ./config:/zeroclaw-data/.zeroclaw
@@ -54,6 +56,8 @@ services:
       - ./secrets/google:/zeroclaw-data/.config/gws
       # Strava OAuth token (gitignored). Create via docs/strava.md
       - ./secrets/strava:/zeroclaw-data/.config/strava
+      # Garmin Connect session (gitignored). Create via docs/garmin.md / make garmin-auth
+      - ./secrets/garmin:/zeroclaw-data/.config/garmin
     # Ephemeral, world-writable scratch for gws output files (see working_dir above).
     tmpfs:
       - /zeroclaw-scratch:mode=1777

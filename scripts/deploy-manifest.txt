@@ -25,3 +25,5 @@ secrets/google/credentials.json
 secrets/google/client_secret.json
 secrets/strava/.gitkeep
 secrets/strava/tokens.json
+secrets/garmin/.gitkeep
+secrets/garmin/session.json

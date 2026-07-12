@@ -22,7 +22,7 @@ else
   REMOTE := bash scripts/remote.sh
 endif
 
-.PHONY: help env env-force dirs init sync-config config build pull up down restart logs ps status shell clean strava-auth \
+.PHONY: help env env-force dirs init sync-config config build pull up down restart logs ps status shell clean strava-auth garmin-auth \
         remote-check remote-sync remote-up remote-down remote-restart remote-logs remote-ps remote-status \
         remote-pull remote-ssh remote-deploy remote-bind
 
@@ -72,6 +72,7 @@ help: ## Show available commands
 	@echo     shell                  Debug shell (debian image; runtime is distroless)
 	@echo     clean                  Same as down (keeps ./data)
 	@echo     strava-auth            One-time Strava OAuth; writes secrets/strava/tokens.json
+	@echo     garmin-auth            One-time Garmin login; writes secrets/garmin/session.json
 	@echo.
 	@echo   Remote deploy  (needs OpenSSH; see docs/deploy.md)
 	@echo   --------------------------------------------------
@@ -95,6 +96,7 @@ help: ## Show available commands
 	@echo     docs/whatsapp.md       WhatsApp Web friend / group (optional)
 	@echo     docs/google-workspace.md Thin gws image + OAuth (Gmail/Docs/…)
 	@echo     docs/strava.md         Strava workouts via strava-mcp (optional)
+	@echo     docs/garmin.md         Garmin sleep/weight via go-garmin MCP (optional)
 	@echo     docs/deploy.md         Windows -^> Ubuntu remote deploy
 	@echo     README.md              Overview and architecture
 	@echo.
@@ -170,6 +172,10 @@ clean: ## Stop local containers (keeps ./data)
 strava-auth: ## One-time Strava OAuth in a throwaway container (see docs/strava.md)
 	@echo Opening Strava OAuth. A URL will be printed below — open it in your browser and approve.
 	$(COMPOSE) run --rm --build -p 19876:19876 --entrypoint strava-mcp $(SERVICE) auth
+
+garmin-auth: ## One-time Garmin login; writes secrets/garmin/session.json (see docs/garmin.md)
+	@echo Garmin interactive login (email / password / MFA). Session lands in secrets/garmin/.
+	$(COMPOSE) run --rm --build -it --entrypoint garmin $(SERVICE) login
 
 # --- Remote Ubuntu server (from Windows via OpenSSH) -------------------------
 

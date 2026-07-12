@@ -32,9 +32,8 @@ flowchart LR
 | "How was my last ride?" | `strava_get_activity_by_id`, `strava_get_activity_zones` |
 
 > **Rest-day reality check:** true recovery metrics (HRV, Body Battery, sleep)
-> are **Garmin-only** and not exposed through Strava. "Rest today" advice is
-> inferred from training frequency, load, and back-to-back hard days — solid
-> coaching, but not physiological readiness.
+> are **Garmin-only**. Wire [docs/garmin.md](garmin.md) for those; with Strava
+> alone, "rest today" is inferred from training frequency and load.
 
 ---
 

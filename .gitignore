@@ -15,6 +15,11 @@ secrets/strava/*
 !secrets/strava/.gitkeep
 !secrets/strava/.gitignore
 
+# Garmin Connect session (never commit)
+secrets/garmin/*
+!secrets/garmin/.gitkeep
+!secrets/garmin/.gitignore
+
 # Generated config + ZeroClaw pairing/agent state (synced / runtime)
 config/*
 !config/config.toml.example

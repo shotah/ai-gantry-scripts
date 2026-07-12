@@ -18,7 +18,7 @@ risk_profile = "default"
 channels = ["telegram.default"]
 # Grant MCP servers to this agent. ZeroClaw is secure-by-default: servers in
 # [mcp] are registered but only reach an agent via a bundle (see [mcp_bundles]).
-mcp_bundles = ["strava"]
+mcp_bundles = ["strava", "garmin"]
 
 [channels.telegram.default]
 enabled = true
@@ -48,8 +48,9 @@ timeout_secs = 90
 audit_log = true
 
 # Strava workout data via the strava-mcp MCP server (docs/strava.md).
-# ZeroClaw launches the binary over stdio; creds come from the container env
-# (STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET / STRAVA_TOKEN_PATH in .env + compose).
+# Garmin Connect (sleep / weight / readiness) via go-garmin (docs/garmin.md).
+# ZeroClaw launches each binary over stdio. Strava creds come from the container
+# env; Garmin uses secrets/garmin/session.json on the mount (HOME=/zeroclaw-data).
 [mcp]
 enabled = true
 # false = load MCP tool schemas eagerly so the model always sees them.
@@ -63,10 +64,19 @@ name = "strava"
 transport = "stdio"
 command = "strava-mcp"
 
+[[mcp.servers]]
+name = "garmin"
+transport = "stdio"
+command = "garmin"
+args = ["mcp"]
+
 # Bundle that grants the "strava" MCP server. Referenced by agents.main.mcp_bundles.
 # Without this grant the agent sees zero Strava tools and improvises (e.g. Gmail).
 [mcp_bundles.strava]
 servers = ["strava"]
+
+[mcp_bundles.garmin]
+servers = ["garmin"]
 
 # Web access for Tim's `web_fetch` tool. Matching is by domain (exact or
 # subdomain) — no scheme, no path. `blocked_domains` ALWAYS wins over allowed.
@@ -103,32 +113,14 @@ allow_public_bind = false
 require_pairing = false
 
 [risk_profiles.default]
-level = "supervised"
-auto_approve = [
-  "file_read",
-  "file_write",
-  "file_edit",
-  "memory_recall",
-  "memory_store",
-  "web_search_tool",
-  "web_fetch",
-  "calculator",
-  "glob_search",
-  "content_search",
-  "google_workspace",
-  # strava-mcp tools. auto_approve needs the exact prefixed name
-  # (<server>__<tool>); a bare "strava" does NOT match. Names track
-  # StravaMCP v1.2.0 (docs/strava.md). Authorization is separate: an empty
-  # allowed_tools = no constraint, and the bundle grant makes them visible.
-  "strava__strava_get_activities",
-  "strava__strava_get_activity_by_id",
-  "strava__strava_get_activity_zones",
-  "strava__strava_get_activity_streams",
-  "strava__strava_get_athlete",
-  "strava__strava_get_athlete_stats",
-  "strava__strava_get_club_activities",
-  "strava__strava_get_upload",
-  "strava__strava_create_activity",
-  "strava__strava_update_activity",
-  "strava__strava_create_upload",
-]
+# Autonomy levels (ZeroClaw built-in — no custom boolean needed):
+#   readonly    — observe only
+#   supervised  — medium-risk tools ask / get denied on channels (default)
+#   full        — no approval prompts; forbidden_paths / sandbox still apply  ← Tim
+#   yolo        — nuke all gates (shell, paths, sandbox). Overkill for a bot
+#                 that has Gmail + a Telegram allowlist; use only on a throwaway box.
+# Same idea as web_fetch allowed_domains = ["*"]: stop enumerating every tool.
+level = "full"
+auto_approve = ["*"]
+# Optional: force a prompt for specific tools even under full (rarely needed):
+# always_ask = ["shell"]
