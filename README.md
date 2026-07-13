@@ -210,6 +210,7 @@ Set in `.env` (copy from [`.env.example`](.env.example)). Secrets are never comm
 
 | Variable | Required | Description |
 |---|---|---|
+| `TZ` | — | IANA timezone (default `America/Los_Angeles`; Docker is UTC without this) |
 | `GEMINI_API_KEY` | ✅ | [Google AI Studio](https://aistudio.google.com/apikey) key |
 | `GEMINI_MODEL` | — | Default `gemini-3.5-flash` |
 | `TELEGRAM_BOT_TOKEN` | ✅ | From [@BotFather](https://t.me/BotFather) |

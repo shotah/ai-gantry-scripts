@@ -32,6 +32,8 @@ services:
     environment:
       HOME: /zeroclaw-data
       ZEROCLAW_DATA_DIR: /zeroclaw-data/data
+      # Container clock defaults to UTC without this — cron + "what time is it" go wrong.
+      TZ: ${TZ:-America/Los_Angeles}
       ZEROCLAW_providers__models__gemini__default__api_key: ${GEMINI_API_KEY:-}
       ZEROCLAW_providers__models__gemini__default__model: ${GEMINI_MODEL:-gemini-3.5-flash}
       ZEROCLAW_channels__telegram__default__bot_token: ${TELEGRAM_BOT_TOKEN:-}
