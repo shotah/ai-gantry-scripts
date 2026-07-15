@@ -172,7 +172,7 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 
 | Guide | What it covers | When you need it |
 |---|---|---|
-| 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, schema-v3 `peer_groups` allowlist, `make remote-bind` pairing, `/new` session reset, `telegram_lean` history bounds | **Always** — this is the default channel |
+| 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, schema-v3 `peer_groups` allowlist, `make remote-bind` pairing, `/new` session reset, `telegram_lean` history bounds, long-term SQLite memory | **Always** — this is the default channel |
 | 🚀 **[docs/deploy.md](docs/deploy.md)** | Ubuntu server prep, UID/GID ownership, OpenSSH on Windows, the `make remote-*` workflow | Running on a real server |
 | 🗂️ **[docs/google-workspace.md](docs/google-workspace.md)** | Go MCP (`google-workspace-mcp-go`), OAuth import from gws export, Docs/Gmail/Calendar tools | Gmail / Docs / Calendar / Drive |
 | 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring | Workout summaries & training nudges |
@@ -310,7 +310,7 @@ make help            # full grouped list
 
 - **Thin image.** Multi-stage build fetches `gws`, static `strava-mcp`, and builds static `garmin` (go-garmin), then copies just those onto upstream distroless — no full OS in the runtime.
 - **No published ports.** Telegram polls outbound; the gateway binds `127.0.0.1` only.
-- **Bounded resources.** `mem_limit: 512m`, `cpus: 2.0`, tiny reservation.
+- **Bounded resources.** `mem_limit: 2g`, `cpus: 4.0`, `mem_reservation: 256m`.
 - **Runs as your user.** `ZEROCLAW_UID/GID` match the server login, so bind mounts and pairing state write cleanly (no `chown 65534` dance).
 - **Deny-by-default access.** Telegram `peer_groups.*.external_peers` gates who the agent answers; the dashboard is never exposed.
 
@@ -320,7 +320,7 @@ make help            # full grouped list
 
 ```
 tim/
-├── docker-compose.yml         # the ZeroClaw service (no ports, 512M cap)
+├── docker-compose.yml         # the ZeroClaw service (no ports, 2G / 4 CPU)
 ├── Dockerfile                 # distroless + gws + strava-mcp + garmin (multi-stage)
 ├── Makefile                   # local + remote targets
 ├── .env.example               # all knobs, documented

@@ -91,13 +91,25 @@ reset and ask one concrete thing again.
 
 `config.toml` binds `agents.main` to `[runtime_profiles.telegram_lean]`:
 
-- Cap history (`max_history_messages = 40`)
-- Keep full tool payloads only for the last couple of turns
-- Trim huge single tool results (Gmail/Calendar dumps)
-- Enable history pruning + earlier context compression
+- Cap history (`max_history_messages = 200`)
+- Keep full tool payloads for recent turns (`keep_tool_context_turns = 4`)
+- Trim huge single tool results (Gmail/Calendar dumps; `max_tool_result_chars = 16000`)
+- History pruning up to ~128k tokens (`keep_recent = 24`)
+- Context compression when the prompt gets heavy (`threshold_ratio = 0.55`)
 
-Gemini’s large context window does **not** replace these bounds — fat tool results
-still make answers worse. `/new` remains the hard reset.
+Gemini 3.5’s ~1M window leaves headroom, but fat tool results still make answers
+worse without these caps. `/new` remains the hard **session** reset.
+
+## Long-term memory
+
+ZeroClaw’s `[memory]` block (SQLite hybrid: vector + FTS5) persists under `./data`.
+Embeddings use Gemini (`gemini-embedding-001`) via the OpenAI-compatible endpoint;
+compose sets `OPENAI_API_KEY` from the same `GEMINI_API_KEY` as chat.
+
+- Facts you state are auto-saved and hydrated into later turns (`auto_hydrate`).
+- `/new` clears the Telegram session only — long-term memory remains.
+- To wipe server memory intentionally, see [docs/deploy.md](deploy.md)
+  (`rm -rf data/data/*` then restart).
 
 ---
 

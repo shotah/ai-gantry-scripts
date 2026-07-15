@@ -41,6 +41,9 @@ services:
       # Gemini Google Search MCP (zchee) inherits these — same key as chat.
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      # OpenAI-compatible client for ZeroClaw hybrid memory embeddings
+      # (Gemini embeddings endpoint in config.toml). Same key as chat.
+      OPENAI_API_KEY: ${GEMINI_API_KEY:-}
       # Google Workspace MCP (magks) — OAuth client + token dir (docs/google-workspace.md).
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
@@ -71,9 +74,9 @@ services:
     tmpfs:
       - /zeroclaw-scratch:mode=1777
       - /zeroclaw-data/.config/gws:uid=${ZEROCLAW_UID:-1000},gid=${ZEROCLAW_GID:-1000},mode=0700
-    mem_limit: 512m
-    cpus: 2.0
-    mem_reservation: 32m
+    mem_limit: 2g
+    cpus: 4.0
+    mem_reservation: 256m
     healthcheck:
       test: ["CMD", "zeroclaw", "status", "--format=exit-code"]
       interval: 60s

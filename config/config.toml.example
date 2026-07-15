@@ -22,27 +22,45 @@ channels = ["telegram.default"]
 mcp_bundles = ["google-workspace", "strava", "garmin", "google-search"]
 
 # Bound Telegram session history so fat tool dumps don't poison the prompt.
+# Gemini 3.5 has ~1M context; keep room for MCP schemas while retaining chat.
 # Send /new in Telegram for a hard session reset. See docs/telegram.md.
 [runtime_profiles.telegram_lean]
 agentic = true
-max_history_messages = 40
-keep_tool_context_turns = 2
-max_tool_result_chars = 6000
-max_tool_iterations = 12
+max_history_messages = 200
+keep_tool_context_turns = 4
+max_tool_result_chars = 16000
+max_tool_iterations = 20
 
 [runtime_profiles.telegram_lean.history_pruning]
 enabled = true
-keep_recent = 6
-max_tokens = 12000
+keep_recent = 24
+max_tokens = 128000
 collapse_tool_results = true
 
 [runtime_profiles.telegram_lean.context_compression]
 enabled = true
-threshold_ratio = 0.35
+threshold_ratio = 0.55
 protect_first_n = 2
-protect_last_n = 6
-summary_max_chars = 3000
-tool_result_retrim_chars = 1500
+protect_last_n = 20
+summary_max_chars = 8000
+tool_result_retrim_chars = 4000
+
+# Long-term hybrid memory (SQLite vector + FTS5). Persists under ./data.
+# Embeddings use Gemini via OpenAI-compatible API; OPENAI_API_KEY is set from
+# GEMINI_API_KEY in docker-compose. /new clears the Telegram session only.
+[memory]
+backend = "sqlite"
+auto_save = true
+hygiene_enabled = true
+archive_after_days = 90
+purge_after_days = 365
+auto_hydrate = true
+embedding_provider = "custom:https://generativelanguage.googleapis.com/v1beta/openai"
+embedding_model = "gemini-embedding-001"
+embedding_dimensions = 3072
+vector_weight = 0.7
+keyword_weight = 0.3
+embedding_cache_size = 2000
 
 [channels.telegram.default]
 enabled = true
