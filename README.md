@@ -174,6 +174,7 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 | Guide | What it covers | When you need it |
 |---|---|---|
 | 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, schema-v3 `peer_groups` allowlist, `make remote-bind` pairing, `/new` session reset, `telegram_lean` history bounds, long-term SQLite memory | **Always** — this is the default channel |
+| 🧠 **[docs/models.md](docs/models.md)** | Chat vs search vs embeddings; Gemini defaults; switching Gemini models; swapping chat to xAI/Grok | Changing brain / cost tuning |
 | 🚀 **[docs/deploy.md](docs/deploy.md)** | Ubuntu server prep, UID/GID ownership, OpenSSH on Windows, the `make remote-*` workflow | Running on a real server |
 | 🗂️ **[docs/google-workspace.md](docs/google-workspace.md)** | Go MCP (`google-workspace-mcp-go`), `make google-auth`, Docs/Gmail/Calendar tools | Gmail / Docs / Calendar / Drive |
 | 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring | Workout summaries & training nudges |
@@ -186,6 +187,7 @@ Supporting files: [`SECURITY.md`](SECURITY.md) (hardening defaults & reporting).
 ```mermaid
 flowchart LR
   R[README] --> T[telegram.md]
+  R --> M[models.md]
   R --> D[deploy.md]
   R --> G[google-workspace.md]
   R --> S[strava.md]
@@ -199,7 +201,7 @@ flowchart LR
   D -. secrets sync .-> Ga
   classDef core fill:#1f6feb22,stroke:#1f6feb,color:#79c0ff;
   classDef opt fill:#6e768122,stroke:#6e7681,color:#8b949e;
-  class T,D core;
+  class T,D,M core;
   class G,S,Ga,W,SMS opt;
 ```
 
@@ -213,7 +215,7 @@ Set in `.env` (copy from [`.env.example`](.env.example)). Secrets are never comm
 |---|---|---|
 | `TZ` | — | IANA timezone (default `America/Los_Angeles`; Docker is UTC without this) |
 | `GEMINI_API_KEY` | ✅ | [Google AI Studio](https://aistudio.google.com/apikey) key |
-| `GEMINI_MODEL` | — | Default `gemini-3.5-flash` |
+| `GEMINI_MODEL` | — | Default `gemini-3.5-flash` (see [docs/models.md](docs/models.md)) |
 | `TELEGRAM_BOT_TOKEN` | ✅ | From [@BotFather](https://t.me/BotFather) |
 | `TELEGRAM_ALLOWED_USERS` | ✅ | Comma-separated numeric user IDs (become `peer_groups` members) |
 | `STRAVA_CLIENT_ID` | — | Strava API app client ID (see [Workout coaching](#workout-coaching-strava)) |
@@ -339,10 +341,12 @@ tim/
 ├── docs/
 │   ├── assets/banner.svg
 │   ├── telegram.md
+│   ├── models.md              # Gemini / Grok chat swap, search & embeddings
 │   ├── deploy.md
 │   ├── google-workspace.md
 │   ├── strava.md
 │   ├── garmin.md              # sleep / weight via go-garmin MCP
+│   ├── web-search.md
 │   ├── sms.md                 # proposal: SMS / Twilio vs Google (not implemented)
 │   └── whatsapp.md
 └── data/                      # runtime memory/workspace (gitignored)
