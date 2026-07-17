@@ -158,7 +158,8 @@ switch ($Action) {
     Write-Host "Synced to ${target}:${deployPath}"
   }
   'up' {
-    Invoke-Remote "cd '${deployPath}' && docker compose build --pull && docker compose up -d"
+    $bust = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    Invoke-Remote "cd '${deployPath}' && docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust && docker compose up -d"
   }
   'down' {
     Invoke-Remote "cd '${deployPath}' && docker compose down"
@@ -176,7 +177,8 @@ switch ($Action) {
     Invoke-Remote "cd '${deployPath}' && docker compose exec -T zeroclaw zeroclaw status --format=exit-code && echo OK"
   }
   'pull' {
-    Invoke-Remote "cd '${deployPath}' && docker compose pull --ignore-buildable 2>/dev/null; docker compose build --pull"
+    $bust = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    Invoke-Remote "cd '${deployPath}' && docker compose pull --ignore-buildable 2>/dev/null; docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust"
   }
   'bind' {
     $uid = $null

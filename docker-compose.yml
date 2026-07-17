@@ -1,7 +1,8 @@
 # Lean ZeroClaw stack — Gemini + Telegram (Telegram polls outbound).
 # Gateway/dashboard published on 42617 for LAN access (keep off the public internet).
-# Image: distroless upstream + gws + google-workspace-mcp-go + strava + garmin + gemini-search.
-# Docs: docs/telegram.md, docs/google-workspace.md, docs/strava.md, docs/garmin.md, docs/web-search.md
+# Image: distroless upstream + gws + google-workspace-mcp-go + strava + garmin + gemini-search + mcp-beam + youtube-go-mcp.
+# Docs: docs/telegram.md, docs/google-workspace.md, docs/strava.md, docs/garmin.md, docs/web-search.md, docs/cast.md, docs/ytmusic.md
+# Cast mDNS: set NETWORK_MODE=host in .env on the Linux home server (docs/cast.md).
 
 services:
   zeroclaw:
@@ -17,9 +18,14 @@ services:
         - GARMIN_MCP_VERSION
         - GEMINI_SEARCH_MCP_REF
         - GOOGLE_WORKSPACE_MCP_REF
+        - MCP_BEAM_VERSION
+        - YOUTUBE_GO_MCP_VERSION
+        - TOOLS_CACHEBUST
     image: ${ZEROCLAW_IMAGE:-zeroclaw-gws:local}
     container_name: zeroclaw
     restart: unless-stopped
+    # bridge (default) for Docker Desktop / normal NAT; host for Cast mDNS on Linux.
+    network_mode: ${NETWORK_MODE:-bridge}
     # Match the deploy user on the server (id -u / id -g). Avoids UID 65534 data fights.
     user: "${ZEROCLAW_UID:-1000}:${ZEROCLAW_GID:-1000}"
     # Writable CWD for leftover gws CLI deletes (docs/google-workspace.md).
@@ -58,8 +64,13 @@ services:
       STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:-}
       STRAVA_TOKEN_PATH: /zeroclaw-data/.config/strava/tokens.json
       # Garmin MCP: no email/password env — session.json on the mount (docs/garmin.md).
+      # Cast MCP (mcp-beam): no API keys. Optional knobs in docs/cast.md.
+      MCP_BEAM_LOG_LEVEL: ${MCP_BEAM_LOG_LEVEL:-info}
+      # YouTube Music MCP (youtube-go-mcp): browser headers on the mount (docs/ytmusic.md).
+      YTMUSIC_HEADERS_PATH: /zeroclaw-data/.config/ytmusic/headers.json
     ports:
       # Web dashboard + REST/WS gateway — LAN only; do not port-forward from the WAN.
+      # Ignored when NETWORK_MODE=host (gateway still binds host :42617 via config).
       - "${GATEWAY_PORT:-42617}:42617"
     volumes:
       # Full .zeroclaw dir (config.toml + pairing/agent state) — owned by deploy user
@@ -75,6 +86,8 @@ services:
       - ./secrets/strava:/zeroclaw-data/.config/strava
       # Garmin Connect session (gitignored). Create via docs/garmin.md / make garmin-auth
       - ./secrets/garmin:/zeroclaw-data/.config/garmin
+      # YouTube Music browser headers (gitignored). Create via docs/ytmusic.md / make ytmusic-auth
+      - ./secrets/ytmusic:/zeroclaw-data/.config/ytmusic
     tmpfs:
       - /zeroclaw-scratch:mode=1777
       - /zeroclaw-data/.config/gws:uid=${ZEROCLAW_UID:-1000},gid=${ZEROCLAW_GID:-1000},mode=0700

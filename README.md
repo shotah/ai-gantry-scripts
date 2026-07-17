@@ -26,6 +26,8 @@ Design goals: **tiny footprint, no inbound ports, one command to deploy.**
 - [Environment variables](#environment-variables)
 - [Workout coaching (Strava)](#workout-coaching-strava)
 - [Garmin recovery (sleep / weight)](#garmin-recovery-sleep--weight)
+- [House Cast (speakers / displays)](#house-cast-speakers--displays)
+- [YouTube Music](#youtube-music)
 - [Make targets](#make-targets)
 - [Design & efficiency notes](#design--efficiency-notes)
 - [Project layout](#project-layout)
@@ -48,21 +50,28 @@ flowchart LR
     GWS[gws binary]
     SM[strava-mcp]
     GM[garmin]
+    CM[mcp-beam]
+    YM[youtube-go-mcp]
     ZC -->|exec| GWS
     ZC -->|MCP stdio| SM
     ZC -->|MCP stdio| GM
+    ZC -->|MCP stdio| CM
+    ZC -->|MCP stdio| YM
   end
 
   ZC -->|HTTPS| GEM[Gemini API]
   GWS -->|OAuth| GW[Gmail · Docs · Calendar · Drive]
   SM -->|OAuth| STV[Strava]
   GM -->|session| GC[Garmin Connect]
+  CM -->|mDNS / castv2| CAST[Nest / Chromecast / DLNA]
+  YM -->|InnerTube| YTM[YouTube Music]
 
   ZC --- CFG[("./config<br/>config.toml + state")]
   ZC --- DATA[("./data<br/>memory / workspace")]
   GWS --- SEC[("./secrets/google<br/>OAuth token")]
   SM --- SECS[("./secrets/strava<br/>OAuth token")]
   GM --- SECG[("./secrets/garmin<br/>session.json")]
+  YM --- SECY[("./secrets/ytmusic<br/>headers.json")]
 
   classDef store fill:#161b22,stroke:#30363d,color:#8b949e;
   class CFG,DATA,SEC store;
@@ -180,6 +189,8 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 | 🗂️ **[docs/google-workspace.md](docs/google-workspace.md)** | Go MCP (`google-workspace-mcp-go`), `make google-auth`, Docs/Gmail/Calendar tools | Gmail / Docs / Calendar / Drive |
 | 🏃 **[docs/strava.md](docs/strava.md)** | Strava API app, `strava-mcp` OAuth, token mount, MCP wiring | Workout summaries & training nudges |
 | ⌚ **[docs/garmin.md](docs/garmin.md)** | go-garmin MCP, `make garmin-auth`, sleep / weight / readiness | Physiological recovery + scale weight |
+| 📺 **[docs/cast.md](docs/cast.md)** | mcp-beam (Go) release, host networking, `beam_youtube_video` / pause / volume | House Chromecast / Nest / DLNA |
+| 🎵 **[docs/ytmusic.md](docs/ytmusic.md)** | youtube-go-mcp (Go), browser headers, search / library / liked | YouTube Music → `videoId` → Cast |
 | 💬 **[docs/whatsapp.md](docs/whatsapp.md)** | Web vs Cloud API (upstream selectors), `mode=personal`, peers/groups, when to skip WhatsApp | Reaching friends who don't use Telegram |
 | 📱 **[docs/sms.md](docs/sms.md)** | **Proposal** — Twilio / Telnyx vs Google Voice / RCS; why GWS ≠ SMS; webhook + 10DLC caveats | Plain SMS texting |
 
@@ -194,6 +205,8 @@ flowchart LR
   R --> G[google-workspace.md]
   R --> S[strava.md]
   R --> Ga[garmin.md]
+  R --> C[cast.md]
+  R --> Ym[ytmusic.md]
   R --> W[whatsapp.md]
   R --> SMS[sms.md]
   T -. optional .-> W
@@ -201,10 +214,13 @@ flowchart LR
   D -. secrets sync .-> G
   D -. secrets sync .-> S
   D -. secrets sync .-> Ga
+  D -. secrets sync .-> Ym
+  D -. host net .-> C
+  Ym -. videoId .-> C
   classDef core fill:#1f6feb22,stroke:#1f6feb,color:#79c0ff;
   classDef opt fill:#6e768122,stroke:#6e7681,color:#8b949e;
   class T,D,M,P core;
-  class G,S,Ga,W,SMS opt;
+  class G,S,Ga,C,Ym,W,SMS opt;
 ```
 
 ---
@@ -227,6 +243,9 @@ Set in `.env` (copy from [`.env.example`](.env.example)). Secrets are never comm
 | `GWS_VERSION` | — | Override the `gws` release tag (default pinned in the `Dockerfile`) |
 | `STRAVA_MCP_VERSION` | — | Override the `strava-mcp` release tag (default pinned in the `Dockerfile`) |
 | `GARMIN_MCP_VERSION` | — | shotah/go-garmin release tag (default `v0.1.0`) |
+| `MCP_BEAM_VERSION` | — | shotah/mcp-beam release (`latest` default; pin `vX.Y.Z` to freeze) |
+| `YOUTUBE_GO_MCP_VERSION` | — | youtube-go-mcp release (`latest` default; pin `vX.Y.Z` to freeze) |
+| `NETWORK_MODE` | Cast | `host` for Cast mDNS on Linux (default `bridge`) |
 | `GEMINI_SEARCH_MCP_REF` | — | Optional zchee Google Search MCP git pin (default in `Dockerfile`) |
 | `ZEROCLAW_UID` / `ZEROCLAW_GID` | server | Match the server login user (`id -u` / `id -g`) |
 | `DEPLOY_HOST` | remote | Server hostname / IP |
@@ -275,6 +294,47 @@ Full guide: **[docs/garmin.md](docs/garmin.md)**.
 
 ---
 
+## House Cast (speakers / displays)
+
+Tim can discover and control Chromecast / Nest / DLNA devices on your LAN via
+[shotah/mcp-beam](https://github.com/shotah/mcp-beam) — a **static Go** release
+binary baked into the image (same pattern as Strava/Garmin). No API keys.
+Optional. Includes `beam_youtube_video` for Nest playback from a YouTube
+`videoId` (pair with YouTube Music below).
+
+**On the Linux home server**, enable host networking so mDNS works:
+
+```bash
+# in .env:
+NETWORK_MODE=host
+make sync-config && make build && make up   # or: make remote-deploy
+```
+
+Ask Tim: “What Cast devices are online?” / “Play this liked track on the kitchen Nest.”
+
+Full guide: **[docs/cast.md](docs/cast.md)**.
+
+---
+
+## YouTube Music
+
+Tim can search YouTube Music and read your library (playlists, liked songs, history)
+via [youtube-go-mcp](https://github.com/shotah/youtube-go-mcp) — a **static Go**
+binary baked into the image. Auth is browser-session headers (Premium rides along),
+not a Data API key. Optional. Playback: hand `videoId` to Cast
+`beam_youtube_video` (not a watch URL on `beam_media`).
+
+```bash
+make ytmusic-auth     # paste DevTools headers → secrets/ytmusic/headers.json
+make sync-config && make build && make up   # or: make remote-deploy
+```
+
+Ask Tim: “Search YouTube Music for … and play it on the kitchen Nest.”
+
+Full guide: **[docs/ytmusic.md](docs/ytmusic.md)**.
+
+---
+
 ## Web search (Google via Gemini)
 
 DuckDuckGo (ZeroClaw’s built-in `web_search`) gets blocked from Docker. Tim uses
@@ -306,15 +366,15 @@ make help            # full grouped list
 | `up` / `down` / `restart` | `remote-up` / `remote-down` / `remote-restart` |
 | `logs` / `ps` / `status` | `remote-logs` / `remote-ps` / `remote-status` |
 | `shell` — debug (debian image) | `remote-bind` — approve a Telegram id |
-| `strava-auth` / `garmin-auth` | `remote-ssh [CMD='…']` — run on server |
+| `strava-auth` / `garmin-auth` / `ytmusic-auth` | `remote-ssh [CMD='…']` — run on server |
 | `pull` — upstream base | |
 
 ---
 
 ## Design & efficiency notes
 
-- **Thin image.** Multi-stage build fetches `gws`, static `strava-mcp`, and `garmin` (go-garmin release), then copies those plus a static `/bin/sh` (busybox) onto upstream distroless — no full OS. (ZeroClaw now requires a shell on PATH at agent init; upstream `:debian` is bookworm and too old for `gws`.)
-- **Telegram needs no inbound ports.** It polls outbound; the gateway/dashboard is published on `:42617` for LAN use only.
+- **Thin image.** Multi-stage build fetches/builds static Go tools (`gws`, `strava-mcp`, `garmin`, `mcp-beam`, `youtube-go-mcp`, Workspace + Search MCPs), then copies those plus a static `/bin/sh` (busybox) onto upstream distroless — no full OS, no Node/Bun. (ZeroClaw now requires a shell on PATH at agent init; upstream `:debian` is bookworm and too old for `gws`.)
+- **Telegram needs no inbound ports.** It polls outbound; the gateway/dashboard is published on `:42617` for LAN use only. Cast optionally uses host networking for LAN mDNS (see [docs/cast.md](docs/cast.md)).
 - **Bounded resources.** `mem_limit: 2g`, `cpus: 4.0`, `mem_reservation: 256m`.
 - **Runs as your user.** `ZEROCLAW_UID/GID` match the server login, so bind mounts and pairing state write cleanly (no `chown 65534` dance).
 - **Deny-by-default Telegram access.** `peer_groups.*.external_peers` gates who the agent answers. The dashboard/API is open on the LAN when published — do not WAN-forward `42617`.
@@ -325,8 +385,8 @@ make help            # full grouped list
 
 ```
 tim/
-├── docker-compose.yml         # the ZeroClaw service (:42617 dashboard, 2G / 4 CPU)
-├── Dockerfile                 # distroless + gws + strava-mcp + garmin (multi-stage)
+├── docker-compose.yml         # the ZeroClaw service (:42617 dashboard, 2G / 4 CPU; NETWORK_MODE)
+├── Dockerfile                 # distroless + gws + strava + garmin + mcp-beam + youtube-go-mcp
 ├── Makefile                   # local + remote targets
 ├── .env.example               # all knobs, documented
 ├── config/
@@ -334,7 +394,8 @@ tim/
 ├── secrets/
 │   ├── google/                # OAuth export for gws (gitignored)
 │   ├── strava/                # OAuth token for strava-mcp (gitignored)
-│   └── garmin/                # Connect session for go-garmin (gitignored)
+│   ├── garmin/                # Connect session for go-garmin (gitignored)
+│   └── ytmusic/               # browser headers for youtube-go-mcp (gitignored)
 ├── scripts/
 │   ├── sync-config.js         # .env → config/config.toml
 │   ├── deploy-manifest.txt    # single source of files to sync
@@ -349,6 +410,8 @@ tim/
 │   ├── google-workspace.md
 │   ├── strava.md
 │   ├── garmin.md              # sleep / weight via go-garmin MCP
+│   ├── cast.md                # house Chromecast / Nest / DLNA via mcp-beam (Go)
+│   ├── ytmusic.md             # YouTube Music via youtube-go-mcp
 │   ├── web-search.md
 │   ├── sms.md                 # proposal: SMS / Twilio vs Google (not implemented)
 │   └── whatsapp.md

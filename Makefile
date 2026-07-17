@@ -7,6 +7,13 @@ ENV_EXAMPLE := .env.example
 CONFIG_EXAMPLE := config/config.toml.example
 PERSONA_DIR := config/agents/main/workspace
 
+# Bust mcp-beam / youtube-go-mcp fetch stages so `latest` re-resolves each build.
+ifeq ($(OS),Windows_NT)
+  TOOLS_CACHEBUST ?= $(shell powershell -NoProfile -Command "[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()")
+else
+  TOOLS_CACHEBUST ?= $(shell date +%s)
+endif
+
 ifeq ($(OS),Windows_NT)
   ENV_COPY := powershell -NoProfile -Command "if (-not (Test-Path '$(ENV_FILE)')) { Copy-Item '$(ENV_EXAMPLE)' '$(ENV_FILE)'; Write-Host 'Created $(ENV_FILE) — edit GEMINI_API_KEY and Telegram vars' } else { Write-Host '$(ENV_FILE) already exists (use make env-force to overwrite)' }"
   ENV_FORCE := powershell -NoProfile -Command "Copy-Item '$(ENV_EXAMPLE)' '$(ENV_FILE)' -Force; Write-Host 'Overwrote $(ENV_FILE)'"
@@ -43,7 +50,7 @@ else
 endif
 
 .PHONY: help env env-force dirs init sync-config config persona persona-force build pull up down restart logs ps status shell clean \
-        strava-auth garmin-auth google-auth google-mcp-import \
+        strava-auth garmin-auth google-auth google-mcp-import ytmusic-auth \
         remote-check remote-sync remote-up remote-down remote-restart remote-logs remote-ps remote-status \
         remote-pull remote-ssh remote-deploy remote-bind
 
@@ -101,6 +108,7 @@ help: ## Show available commands
 	@echo     garmin-auth            One-time Garmin login; writes secrets/garmin/session.json
 	@echo     google-auth            One-time Google OAuth via container; writes google-mcp creds
 	@echo     google-mcp-import      Legacy: import gws export into google-mcp (prefer google-auth)
+	@echo     ytmusic-auth           YouTube Music headers -^> secrets/ytmusic/headers.json
 	@echo.
 	@echo   Remote deploy  (needs OpenSSH; see docs/deploy.md)
 	@echo   --------------------------------------------------
@@ -127,6 +135,8 @@ help: ## Show available commands
 	@echo     docs/google-workspace.md Go MCP + OAuth import (Gmail/Docs/…)
 	@echo     docs/strava.md         Strava workouts via strava-mcp (optional)
 	@echo     docs/garmin.md         Garmin sleep/weight via go-garmin MCP (optional)
+	@echo     docs/cast.md           Google Cast/DLNA via mcp-beam Go MCP (optional)
+	@echo     docs/ytmusic.md        YouTube Music via youtube-go-mcp (optional)
 	@echo     docs/deploy.md         Windows -^> Ubuntu remote deploy
 	@echo     README.md              Overview and architecture
 	@echo.
@@ -174,13 +184,14 @@ init: env dirs config persona sync-config ## First-time setup: .env, dirs, confi
 	@echo.
 
 build: ## Build thin image (distroless + gws binary)
-	$(COMPOSE) build $(SERVICE)
+	$(COMPOSE) build --build-arg TOOLS_CACHEBUST=$(TOOLS_CACHEBUST) $(SERVICE)
 
 pull: ## Pull upstream ZeroClaw base image
 	docker pull ghcr.io/zeroclaw-labs/zeroclaw:latest
 
 up: sync-config ## Start ZeroClaw daemon locally (build if needed; no published ports)
-	$(COMPOSE) up -d --build $(SERVICE)
+	$(COMPOSE) build --build-arg TOOLS_CACHEBUST=$(TOOLS_CACHEBUST) $(SERVICE)
+	$(COMPOSE) up -d $(SERVICE)
 
 down: ## Stop and remove local containers
 	$(COMPOSE) down
@@ -215,6 +226,12 @@ garmin-auth: ## Garmin login; clears stale session.json then writes a fresh one 
 	-$(RM_GARMIN_SESSION)
 	@echo Garmin interactive login (email / password / MFA). Session lands in secrets/garmin/.
 	$(COMPOSE) run --rm --build -it --entrypoint garmin $(SERVICE) login
+
+ytmusic-auth: ## YouTube Music browser headers → secrets/ytmusic/headers.json (see docs/ytmusic.md)
+	@echo DevTools → Network → browse → Request Headers: copy cookie, then x-goog-authuser.
+	@echo The CLI prompts for each value. See docs/ytmusic.md.
+	$(COMPOSE) run --rm --build -it --entrypoint youtube-go-mcp $(SERVICE) \
+	  auth --out /zeroclaw-data/.config/ytmusic/headers.json
 
 google-auth: ## Google Workspace OAuth via container; writes secrets/google-mcp (see docs/google-workspace.md)
 ifeq ($(OS),Windows_NT)

@@ -8,7 +8,7 @@
 # drop in a static busybox as /bin/sh instead of switching the whole base image.
 #
 # Build:  docker compose build
-# Auth:   docs/google-workspace.md · docs/strava.md · docs/garmin.md · docs/web-search.md
+# Auth:   docs/google-workspace.md · docs/strava.md · docs/garmin.md · docs/web-search.md · docs/cast.md · docs/ytmusic.md
 
 ARG ZEROCLAW_BASE=ghcr.io/zeroclaw-labs/zeroclaw:latest
 ARG GWS_VERSION=v0.22.5
@@ -19,6 +19,11 @@ ARG GARMIN_MCP_VERSION=v0.1.0
 ARG GEMINI_SEARCH_MCP_REF=1fe676adcdaa79ed0798fd32be0695ffee15c644
 # Google Workspace MCP (Go; magks) — pin commit (override via GOOGLE_WORKSPACE_MCP_REF).
 ARG GOOGLE_WORKSPACE_MCP_REF=e421e4cea028e93575bb4e7b5ec1b3dc4a7084b6
+# Our packages: default `latest` (resolved at build). Pin e.g. v0.0.2 to freeze.
+# TOOLS_CACHEBUST (from make/remote) busts Docker cache so latest re-resolves.
+ARG MCP_BEAM_VERSION=latest
+ARG YOUTUBE_GO_MCP_VERSION=latest
+ARG TOOLS_CACHEBUST=0
 
 # --- static /bin/sh for distroless (agent init + shell tool) -------------------
 FROM debian:trixie-slim AS shell
@@ -114,6 +119,66 @@ RUN git clone https://github.com/zchee/mcp-gemini-google-search.git . \
  && GOOS=linux GOARCH="${TARGETARCH}" go build -trimpath -ldflags="-s -w" -o /mcp-gemini-google-search . \
  && test -x /mcp-gemini-google-search
 
+# --- fetch mcp-beam (static Go; Chromecast + DLNA + YouTube Cast MCP) ---------
+# mDNS discovery needs host networking at runtime (docs/cast.md).
+FROM debian:trixie-slim AS mcp-beam
+ARG MCP_BEAM_VERSION
+ARG TARGETARCH
+ARG TOOLS_CACHEBUST=0
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && case "${TARGETARCH}" in \
+      amd64|arm64) BEAM_ARCH="linux_${TARGETARCH}" ;; \
+      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+ && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
+ && VER="${MCP_BEAM_VERSION}" \
+ && if [ "${VER}" = "latest" ]; then \
+      VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+        "https://github.com/shotah/mcp-beam/releases/latest" \
+        | sed 's|.*/||'); \
+      echo "resolved mcp-beam latest -> ${VER}"; \
+    fi \
+ && V="${VER#v}" \
+ && curl -fsSL \
+      "https://github.com/shotah/mcp-beam/releases/download/${VER}/mcp-beam_${V}_${BEAM_ARCH}.tar.gz" \
+      -o /tmp/mcp-beam.tar.gz \
+ && tar -xzf /tmp/mcp-beam.tar.gz -C /tmp \
+ && install -m 0755 /tmp/mcp-beam /mcp-beam \
+ && /mcp-beam --version
+
+# --- fetch youtube-go-mcp (static Go; YouTube Music search + library) ---------
+# Browser-cookie auth at runtime via YTMUSIC_HEADERS_PATH (docs/ytmusic.md).
+FROM debian:trixie-slim AS youtube-go-mcp
+ARG YOUTUBE_GO_MCP_VERSION
+ARG TARGETARCH
+ARG TOOLS_CACHEBUST=0
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && case "${TARGETARCH}" in \
+      amd64|arm64) YTM_ARCH="linux_${TARGETARCH}" ;; \
+      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+ && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
+ && VER="${YOUTUBE_GO_MCP_VERSION}" \
+ && if [ "${VER}" = "latest" ]; then \
+      VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+        "https://github.com/shotah/youtube-go-mcp/releases/latest" \
+        | sed 's|.*/||'); \
+      echo "resolved youtube-go-mcp latest -> ${VER}"; \
+    fi \
+ && V="${VER#v}" \
+ && curl -fsSL \
+      "https://github.com/shotah/youtube-go-mcp/releases/download/${VER}/youtube-go-mcp_${V}_${YTM_ARCH}.tar.gz" \
+      -o /tmp/youtube-go-mcp.tar.gz \
+ && tar -xzf /tmp/youtube-go-mcp.tar.gz -C /tmp \
+ && install -m 0755 /tmp/youtube-go-mcp /youtube-go-mcp \
+ && /youtube-go-mcp --version
+
 # --- runtime: upstream distroless + shell + tool binaries ---------------------
 FROM ${ZEROCLAW_BASE}
 # busybox-static: satisfies ZeroClaw runtime.shell without pulling in a full OS.
@@ -124,3 +189,5 @@ COPY --from=google-workspace-mcp /google-workspace-mcp-go /usr/local/bin/google-
 COPY --from=strava /strava-mcp /usr/local/bin/strava-mcp
 COPY --from=garmin /garmin /usr/local/bin/garmin
 COPY --from=gemini-search /mcp-gemini-google-search /usr/local/bin/mcp-gemini-google-search
+COPY --from=mcp-beam /mcp-beam /usr/local/bin/mcp-beam
+COPY --from=youtube-go-mcp /youtube-go-mcp /usr/local/bin/youtube-go-mcp

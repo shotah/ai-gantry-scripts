@@ -37,6 +37,8 @@ docs/whatsapp.md
 docs/google-workspace.md
 docs/strava.md
 docs/garmin.md
+docs/cast.md
+docs/ytmusic.md
 docs/web-search.md
 docs/models.md
 docs/persona.md
@@ -53,3 +55,5 @@ secrets/strava/.gitkeep
 secrets/strava/tokens.json
 secrets/garmin/.gitkeep
 secrets/garmin/session.json
+secrets/ytmusic/.gitkeep
+secrets/ytmusic/headers.json

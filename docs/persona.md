@@ -36,7 +36,7 @@ Fill in **`USER.md`** (name, canonical Google email, city) before expecting good
 | `USER.md` | Who you are — **canonical email lives here** |
 | `IDENTITY.md` | Name “Tim”, vibe |
 | `AGENTS.md` | Operating rules / workflows |
-| `TOOLS.md` | How to use Google / Strava / Garmin / memory |
+| `TOOLS.md` | How to use Google / Strava / Garmin / Cast / YT Music / memory |
 | `MEMORY.md` | Curated long-term notes (injected in main session) |
 | `HEARTBEAT.md` | Optional periodic checks (empty = skip) |
 

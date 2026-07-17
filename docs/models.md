@@ -172,7 +172,7 @@ Ask Tim something trivial, then check logs for the provider/model (`make remote-
 |---|---|
 | [Google Search MCP](web-search.md) | Gemini (`GEMINI_API_KEY`) |
 | Hybrid memory embeddings | Gemini `gemini-embedding-001` via OpenAI-compatible URL in `config.toml` |
-| Google Workspace / Strava / Garmin MCPs | No LLM of their own — they are tools the **chat** model calls |
+| Google Workspace / Strava / Garmin / Cast / YT Music MCPs | No LLM of their own — they are tools the **chat** model calls |
 
 Full “no Gemini key at all” means replacing search + embeddings, not only `model_provider`.
 

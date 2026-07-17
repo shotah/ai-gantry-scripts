@@ -19,7 +19,7 @@ runtime_profile = "telegram_lean"
 channels = ["telegram.default"]
 # Grant MCP servers to this agent. ZeroClaw is secure-by-default: servers in
 # [mcp] are registered but only reach an agent via a bundle (see [mcp_bundles]).
-mcp_bundles = ["google-workspace", "strava", "garmin", "google-search"]
+mcp_bundles = ["google-workspace", "strava", "garmin", "google-search", "cast", "ytmusic"]
 
 # Bound Telegram session history so fat tool dumps don't poison the prompt.
 # Gemini 3.5 has ~1M context; keep room for MCP schemas while retaining chat.
@@ -80,7 +80,7 @@ external_peers = []
 enabled = false
 
 # Google Workspace via magks/google-workspace-mcp-go (docs/google-workspace.md).
-# Strava / Garmin / Google Search MCP servers (see their docs).
+# Strava / Garmin / Google Search / Cast / YouTube Music MCP servers (see their docs).
 # ZeroClaw launches each binary over stdio.
 [mcp]
 enabled = true
@@ -115,6 +115,16 @@ name = "google-search"
 transport = "stdio"
 command = "mcp-gemini-google-search"
 
+[[mcp.servers]]
+name = "cast"
+transport = "stdio"
+command = "mcp-beam"
+
+[[mcp.servers]]
+name = "ytmusic"
+transport = "stdio"
+command = "youtube-go-mcp"
+
 [mcp_bundles.google-workspace]
 servers = ["google-workspace"]
 
@@ -126,6 +136,12 @@ servers = ["garmin"]
 
 [mcp_bundles.google-search]
 servers = ["google-search"]
+
+[mcp_bundles.cast]
+servers = ["cast"]
+
+[mcp_bundles.ytmusic]
+servers = ["ytmusic"]
 
 # Built-in ZeroClaw web_search defaults to DuckDuckGo scraping, which Docker IPs
 # get blocked for. Prefer the google-search MCP (Gemini grounding) above.

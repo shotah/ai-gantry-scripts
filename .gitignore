@@ -28,6 +28,11 @@ secrets/garmin/*
 !secrets/garmin/.gitkeep
 !secrets/garmin/.gitignore
 
+# YouTube Music browser headers (never commit)
+secrets/ytmusic/*
+!secrets/ytmusic/.gitkeep
+!secrets/ytmusic/.gitignore
+
 # Scratch HOME used for local garmin CLI smoke tests (never commit)
 secrets/garmin_home_tmp/
 

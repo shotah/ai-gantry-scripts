@@ -73,13 +73,19 @@ case "$ACTION" in
     remote "rm -f '$DEPLOY_PATH/secrets/google/token_cache.json'; rm -rf '$DEPLOY_PATH/secrets/google/cache'"
     echo "Synced to $TARGET:$DEPLOY_PATH"
     ;;
-  up) remote "cd '$DEPLOY_PATH' && docker compose build --pull && docker compose up -d" ;;
+  up)
+    bust=$(date +%s)
+    remote "cd '$DEPLOY_PATH' && docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust && docker compose up -d"
+    ;;
   down) remote "cd '$DEPLOY_PATH' && docker compose down" ;;
   restart) remote "cd '$DEPLOY_PATH' && docker compose restart" ;;
   logs) ssh "${SSH_OPTS[@]}" -t "$TARGET" "cd '$DEPLOY_PATH' && docker compose logs -f --tail=100" ;;
   ps) remote "cd '$DEPLOY_PATH' && docker compose ps" ;;
   status) remote "cd '$DEPLOY_PATH' && docker compose exec -T zeroclaw zeroclaw status --format=exit-code && echo OK" ;;
-  pull) remote "cd '$DEPLOY_PATH' && docker compose build --pull" ;;
+  pull)
+    bust=$(date +%s)
+    remote "cd '$DEPLOY_PATH' && docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust"
+    ;;
   bind)
     UID_ARG="${1:-}"
     if [[ -z "$UID_ARG" && -n "${TELEGRAM_ALLOWED_USERS:-}" ]]; then
