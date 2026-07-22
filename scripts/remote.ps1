@@ -199,12 +199,6 @@ switch ($Action) {
     Write-Host ("Secret group '{0}' synced to {1}:{2} ({3} paths)" -f $name, $target, $deployPath, $copied)
   }
   'up' {
-    # Match compose user= (GANTRY_UID/GID). Legacy ZeroClaw data/ is often
-    # nobody:nogroup (65534) and blocks SQLite create → error 14.
-    $uid = if ($envMap['GANTRY_UID']) { $envMap['GANTRY_UID'] } else { '1000' }
-    $gid = if ($envMap['GANTRY_GID']) { $envMap['GANTRY_GID'] } else { '1000' }
-    Write-Host "Ensuring data/ owned by ${uid}:${gid} (for gantry.db)"
-    Invoke-Remote "cd '${deployPath}' && mkdir -p data && sudo chown -R ${uid}:${gid} data"
     $bust = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
     Invoke-Remote "cd '${deployPath}' && docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust && docker compose up -d"
   }

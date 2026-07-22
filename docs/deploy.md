@@ -29,7 +29,7 @@ sudo chown "$USER:$USER" /gantry
 
 Set `GANTRY_UID` / `GANTRY_GID` in `.env` to your server user (`id -u` / `id -g`, usually `1000`). The container runs as that user so `data/` and `secrets/` writes work.
 
-`make remote-up` / `remote-deploy` runs `sudo chown -R $GANTRY_UID:$GANTRY_GID data` before compose up — needed once when migrating from ZeroClaw, whose distroless user left `data/` as `nobody:nogroup` (SQLite then fails with “unable to open database file (14)”). Passwordless sudo for that chown is ideal; otherwise run the chown once by hand.
+If you migrate from ZeroClaw and SQLite fails with “unable to open database file (14)”, `data/` is probably still owned by `nobody` — fix once on the server: `sudo chown -R 1000:1000 data`.
 
 Ensure outbound HTTPS works (Telegram + Gemini). Telegram polling needs **no inbound ports**, and gantry opens none — the healthcheck is `gantry status` (an exit code), so there is no dashboard or gateway port to protect.
 

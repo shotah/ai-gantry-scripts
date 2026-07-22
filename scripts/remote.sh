@@ -121,12 +121,6 @@ case "$ACTION" in
     echo "Secret group '$name' synced to $TARGET:$DEPLOY_PATH ($copied path(s))"
     ;;
   up)
-    # Match compose user= (GANTRY_UID/GID). Legacy ZeroClaw data/ is often
-    # nobody:nogroup (65534) and blocks SQLite create → error 14.
-    uid="${GANTRY_UID:-1000}"
-    gid="${GANTRY_GID:-1000}"
-    echo "Ensuring data/ owned by ${uid}:${gid} (for gantry.db)"
-    remote "cd '$DEPLOY_PATH' && mkdir -p data && sudo chown -R ${uid}:${gid} data"
     bust=$(date +%s)
     remote "cd '$DEPLOY_PATH' && docker compose build --pull --build-arg TOOLS_CACHEBUST=$bust && docker compose up -d"
     ;;

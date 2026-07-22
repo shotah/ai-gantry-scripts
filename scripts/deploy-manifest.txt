@@ -9,17 +9,9 @@
 docker-compose.yml
 Makefile
 .env
-.env.example
 Dockerfile
 mcp.toml
-persona/SOUL.example.md
-persona/USER.example.md
-persona/IDENTITY.example.md
-persona/AGENTS.example.md
-persona/TOOLS.example.md
-persona/MEMORY.example.md
-persona/HEARTBEAT.example.md
-# Personal (gitignored) — synced when present after `make persona`
+# Live persona (gitignored) — synced when present after `make persona`
 persona/SOUL.md
 persona/USER.md
 persona/IDENTITY.md
@@ -34,17 +26,6 @@ scripts/google-auth.sh
 scripts/google-auth-inner.py
 scripts/google-mcp-import.ps1
 scripts/google-mcp-import.sh
-docs/telegram.md
-docs/google-workspace.md
-docs/strava.md
-docs/garmin.md
-docs/cast.md
-docs/ytmusic.md
-docs/web-search.md
-docs/models.md
-docs/persona.md
-docs/deploy.md
-README.md
 # Secret *directories* only (empty stubs). Token/session files are NOT synced here.
 secrets/google/.gitkeep
 secrets/google-mcp/.gitkeep
