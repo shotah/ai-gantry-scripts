@@ -7,10 +7,10 @@
 # Auth:   docs/google-workspace.md · docs/strava.md · docs/garmin.md · docs/web-search.md · docs/cast.md · docs/ytmusic.md
 
 # shotah/ai-gantry release (the runtime). Override via GANTRY_VERSION.
-ARG GANTRY_VERSION=v0.0.1
+ARG GANTRY_VERSION=v0.0.3
 ARG STRAVA_MCP_VERSION=v1.2.0
 # shotah/go-garmin release (DI auth + MCP). Override via GARMIN_MCP_VERSION.
-ARG GARMIN_MCP_VERSION=v0.1.0
+ARG GARMIN_MCP_VERSION=v0.1.2
 # Gemini Grounding with Google Search MCP (override via GEMINI_SEARCH_MCP_REF).
 ARG GEMINI_SEARCH_MCP_REF=1fe676adcdaa79ed0798fd32be0695ffee15c644
 # Google Workspace MCP (Go; magks) — pin commit (override via GOOGLE_WORKSPACE_MCP_REF).
@@ -27,19 +27,19 @@ ARG GANTRY_VERSION
 ARG TARGETARCH
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && case "${TARGETARCH}" in \
-      amd64|arm64) GANTRY_ARCH="linux_${TARGETARCH}" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in \
+    amd64|arm64) GANTRY_ARCH="linux_${TARGETARCH}" ;; \
+    *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac \
- && V="${GANTRY_VERSION#v}" \
- && curl -fsSL \
-      "https://github.com/shotah/ai-gantry/releases/download/${GANTRY_VERSION}/gantry_${V}_${GANTRY_ARCH}.tar.gz" \
-      -o /tmp/gantry.tar.gz \
- && tar -xzf /tmp/gantry.tar.gz -C /tmp \
- && install -m 0755 /tmp/gantry /gantry \
- && /gantry version
+    && V="${GANTRY_VERSION#v}" \
+    && curl -fsSL \
+    "https://github.com/shotah/ai-gantry/releases/download/${GANTRY_VERSION}/gantry_${V}_${GANTRY_ARCH}.tar.gz" \
+    -o /tmp/gantry.tar.gz \
+    && tar -xzf /tmp/gantry.tar.gz -C /tmp \
+    && install -m 0755 /tmp/gantry /gantry \
+    && /gantry version
 
 # --- build Google Workspace MCP (static Go; magks) ---------------------------
 FROM golang:1.25-bookworm AS google-workspace-mcp
@@ -49,9 +49,9 @@ ARG TARGETARCH
 ENV CGO_ENABLED=0
 WORKDIR /src
 RUN git clone https://github.com/magks/google-workspace-mcp-go.git . \
- && git checkout --detach "${GOOGLE_WORKSPACE_MCP_REF}" \
- && GOOS=linux GOARCH="${TARGETARCH}" go build -trimpath -ldflags="-s -w" -o /google-workspace-mcp-go . \
- && test -x /google-workspace-mcp-go
+    && git checkout --detach "${GOOGLE_WORKSPACE_MCP_REF}" \
+    && GOOS=linux GOARCH="${TARGETARCH}" go build -trimpath -ldflags="-s -w" -o /google-workspace-mcp-go . \
+    && test -x /google-workspace-mcp-go
 
 # --- fetch strava-mcp (static Go binary; MCP server for Strava) ---------------
 FROM debian:trixie-slim AS strava
@@ -59,19 +59,19 @@ ARG STRAVA_MCP_VERSION
 ARG TARGETARCH
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && case "${TARGETARCH}" in \
-      amd64|arm64) STRAVA_ARCH="linux_${TARGETARCH}" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in \
+    amd64|arm64) STRAVA_ARCH="linux_${TARGETARCH}" ;; \
+    *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac \
- && V="${STRAVA_MCP_VERSION#v}" \
- && curl -fsSL \
-      "https://github.com/Stealinglight/StravaMCP/releases/download/${STRAVA_MCP_VERSION}/StravaMCP_${V}_${STRAVA_ARCH}.tar.gz" \
-      -o /tmp/strava.tar.gz \
- && tar -xzf /tmp/strava.tar.gz -C /tmp \
- && install -m 0755 /tmp/strava-mcp /strava-mcp \
- && /strava-mcp --version
+    && V="${STRAVA_MCP_VERSION#v}" \
+    && curl -fsSL \
+    "https://github.com/Stealinglight/StravaMCP/releases/download/${STRAVA_MCP_VERSION}/StravaMCP_${V}_${STRAVA_ARCH}.tar.gz" \
+    -o /tmp/strava.tar.gz \
+    && tar -xzf /tmp/strava.tar.gz -C /tmp \
+    && install -m 0755 /tmp/strava-mcp /strava-mcp \
+    && /strava-mcp --version
 
 # --- fetch garmin CLI + MCP (static Go; shotah/go-garmin release) ------------
 FROM debian:trixie-slim AS garmin
@@ -79,19 +79,19 @@ ARG GARMIN_MCP_VERSION
 ARG TARGETARCH
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && case "${TARGETARCH}" in \
-      amd64|arm64) GARMIN_ARCH="linux_${TARGETARCH}" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in \
+    amd64|arm64) GARMIN_ARCH="linux_${TARGETARCH}" ;; \
+    *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac \
- && V="${GARMIN_MCP_VERSION#v}" \
- && curl -fsSL \
-      "https://github.com/shotah/go-garmin/releases/download/${GARMIN_MCP_VERSION}/garmin_${V}_${GARMIN_ARCH}.tar.gz" \
-      -o /tmp/garmin.tar.gz \
- && tar -xzf /tmp/garmin.tar.gz -C /tmp \
- && install -m 0755 /tmp/garmin /garmin \
- && /garmin --version
+    && V="${GARMIN_MCP_VERSION#v}" \
+    && curl -fsSL \
+    "https://github.com/shotah/go-garmin/releases/download/${GARMIN_MCP_VERSION}/garmin_${V}_${GARMIN_ARCH}.tar.gz" \
+    -o /tmp/garmin.tar.gz \
+    && tar -xzf /tmp/garmin.tar.gz -C /tmp \
+    && install -m 0755 /tmp/garmin /garmin \
+    && /garmin --version
 
 # --- build Gemini Google Search MCP (static Go; zchee) -----------------------
 FROM golang:1.26-bookworm AS gemini-search
@@ -101,9 +101,9 @@ ARG TARGETARCH
 ENV CGO_ENABLED=0
 WORKDIR /src
 RUN git clone https://github.com/zchee/mcp-gemini-google-search.git . \
- && git checkout --detach "${GEMINI_SEARCH_MCP_REF}" \
- && GOOS=linux GOARCH="${TARGETARCH}" go build -trimpath -ldflags="-s -w" -o /mcp-gemini-google-search . \
- && test -x /mcp-gemini-google-search
+    && git checkout --detach "${GEMINI_SEARCH_MCP_REF}" \
+    && GOOS=linux GOARCH="${TARGETARCH}" go build -trimpath -ldflags="-s -w" -o /mcp-gemini-google-search . \
+    && test -x /mcp-gemini-google-search
 
 # --- fetch mcp-beam (static Go; Chromecast + DLNA + YouTube Cast MCP) ---------
 # mDNS discovery needs host networking at runtime (docs/cast.md).
@@ -113,27 +113,27 @@ ARG TARGETARCH
 ARG TOOLS_CACHEBUST=0
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && case "${TARGETARCH}" in \
-      amd64|arm64) BEAM_ARCH="linux_${TARGETARCH}" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in \
+    amd64|arm64) BEAM_ARCH="linux_${TARGETARCH}" ;; \
+    *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac \
- && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
- && VER="${MCP_BEAM_VERSION}" \
- && if [ "${VER}" = "latest" ]; then \
-      VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
-        "https://github.com/shotah/mcp-beam/releases/latest" \
-        | sed 's|.*/||'); \
-      echo "resolved mcp-beam latest -> ${VER}"; \
+    && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
+    && VER="${MCP_BEAM_VERSION}" \
+    && if [ "${VER}" = "latest" ]; then \
+    VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+    "https://github.com/shotah/mcp-beam/releases/latest" \
+    | sed 's|.*/||'); \
+    echo "resolved mcp-beam latest -> ${VER}"; \
     fi \
- && V="${VER#v}" \
- && curl -fsSL \
-      "https://github.com/shotah/mcp-beam/releases/download/${VER}/mcp-beam_${V}_${BEAM_ARCH}.tar.gz" \
-      -o /tmp/mcp-beam.tar.gz \
- && tar -xzf /tmp/mcp-beam.tar.gz -C /tmp \
- && install -m 0755 /tmp/mcp-beam /mcp-beam \
- && /mcp-beam --version
+    && V="${VER#v}" \
+    && curl -fsSL \
+    "https://github.com/shotah/mcp-beam/releases/download/${VER}/mcp-beam_${V}_${BEAM_ARCH}.tar.gz" \
+    -o /tmp/mcp-beam.tar.gz \
+    && tar -xzf /tmp/mcp-beam.tar.gz -C /tmp \
+    && install -m 0755 /tmp/mcp-beam /mcp-beam \
+    && /mcp-beam --version
 
 # --- fetch youtube-go-mcp (static Go; YouTube Music search + library) ---------
 # Browser-cookie auth at runtime via YTMUSIC_HEADERS_PATH (docs/ytmusic.md).
@@ -143,27 +143,27 @@ ARG TARGETARCH
 ARG TOOLS_CACHEBUST=0
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/* \
- && case "${TARGETARCH}" in \
-      amd64|arm64) YTM_ARCH="linux_${TARGETARCH}" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in \
+    amd64|arm64) YTM_ARCH="linux_${TARGETARCH}" ;; \
+    *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
     esac \
- && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
- && VER="${YOUTUBE_GO_MCP_VERSION}" \
- && if [ "${VER}" = "latest" ]; then \
-      VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
-        "https://github.com/shotah/youtube-go-mcp/releases/latest" \
-        | sed 's|.*/||'); \
-      echo "resolved youtube-go-mcp latest -> ${VER}"; \
+    && : "TOOLS_CACHEBUST=${TOOLS_CACHEBUST}" \
+    && VER="${YOUTUBE_GO_MCP_VERSION}" \
+    && if [ "${VER}" = "latest" ]; then \
+    VER=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+    "https://github.com/shotah/youtube-go-mcp/releases/latest" \
+    | sed 's|.*/||'); \
+    echo "resolved youtube-go-mcp latest -> ${VER}"; \
     fi \
- && V="${VER#v}" \
- && curl -fsSL \
-      "https://github.com/shotah/youtube-go-mcp/releases/download/${VER}/youtube-go-mcp_${V}_${YTM_ARCH}.tar.gz" \
-      -o /tmp/youtube-go-mcp.tar.gz \
- && tar -xzf /tmp/youtube-go-mcp.tar.gz -C /tmp \
- && install -m 0755 /tmp/youtube-go-mcp /youtube-go-mcp \
- && /youtube-go-mcp --version
+    && V="${VER#v}" \
+    && curl -fsSL \
+    "https://github.com/shotah/youtube-go-mcp/releases/download/${VER}/youtube-go-mcp_${V}_${YTM_ARCH}.tar.gz" \
+    -o /tmp/youtube-go-mcp.tar.gz \
+    && tar -xzf /tmp/youtube-go-mcp.tar.gz -C /tmp \
+    && install -m 0755 /tmp/youtube-go-mcp /youtube-go-mcp \
+    && /youtube-go-mcp --version
 
 # --- runtime: distroless/static + gantry + tool binaries ----------------------
 # ca-certs + tzdata included; no shell, no libc. Healthchecks must be exec form.

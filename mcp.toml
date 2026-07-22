@@ -6,9 +6,9 @@
 # Google Workspace (magks/google-workspace-mcp-go) — docs/google-workspace.md
 # core tier ≈ 45 tools; include services Tim uses day-to-day.
 [[server]]
-name    = "google-workspace"
+name = "google-workspace"
 command = "google-workspace-mcp-go"
-args    = [
+args = [
   "--tools",
   "gmail drive calendar docs sheets tasks contacts",
   "--tool-tier",
@@ -17,27 +17,28 @@ args    = [
 
 # Strava workouts (Stealinglight/StravaMCP) — docs/strava.md
 [[server]]
-name    = "strava"
+name = "strava"
 command = "strava-mcp"
 
 # Garmin sleep / body battery / weight (shotah/go-garmin) — docs/garmin.md
+# --tool-tier core ≈ 10 recovery/coaching tools (not the full ~100).
 [[server]]
-name    = "garmin"
+name = "garmin"
 command = "garmin"
-args    = ["mcp"]
+args = ["mcp", "--tool-tier", "core"]
 
 # Web search via Gemini Grounding (zchee/mcp-gemini-google-search) — docs/web-search.md
 [[server]]
-name    = "google-search"
+name = "google-search"
 command = "mcp-gemini-google-search"
 
 # Chromecast / Nest / DLNA (shotah/mcp-beam) — docs/cast.md
 # mDNS discovery needs NETWORK_MODE=host on the Linux server.
 [[server]]
-name    = "cast"
+name = "cast"
 command = "mcp-beam"
 
 # YouTube Music (shotah/youtube-go-mcp) — docs/ytmusic.md
 [[server]]
-name    = "ytmusic"
+name = "ytmusic"
 command = "youtube-go-mcp"

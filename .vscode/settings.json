@@ -95,6 +95,7 @@
     "mem_limit",
     "mem_reservation",
     "newbot",
+    "nogroup",
     "nonroot",
     "openclaw",
     "OpenSSH",

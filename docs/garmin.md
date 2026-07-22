@@ -56,10 +56,10 @@ listed in `mcp.toml` = granted):
 
 **No Garmin email/password in `.env`.** The image downloads the
 [shotah/go-garmin](https://github.com/shotah/go-garmin/releases) release
-binary (default `v0.1.0`). Override only to bump:
+binary (default `v0.1.2`). Override only to bump:
 
 ```env
-# GARMIN_MCP_VERSION=v0.1.0
+# GARMIN_MCP_VERSION=v0.1.2
 ```
 
 ---
@@ -114,8 +114,12 @@ make garmin-sync     # only when you intentionally want the server to get this s
 [[server]]
 name    = "garmin"
 command = "garmin"
-args    = ["mcp"]
+args    = ["mcp", "--tool-tier", "core"]
 ```
+
+`--tool-tier core` publishes ~10 recovery/coaching tools (sleep, weight, body
+battery, HRV, readiness, activities + climbing splits). Use `extended` or
+`complete` if you need more — see [go-garmin MCP docs](https://github.com/shotah/go-garmin#narrowing-the-tool-surface).
 
 Compose mounts:
 
