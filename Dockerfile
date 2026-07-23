@@ -7,7 +7,7 @@
 # Auth:   docs/google-workspace.md · docs/strava.md · docs/garmin.md · docs/web-search.md · docs/cast.md · docs/ytmusic.md
 
 # shotah/ai-gantry release (the runtime). Override via GANTRY_VERSION.
-ARG GANTRY_VERSION=v0.0.3
+ARG GANTRY_VERSION=v0.0.6
 ARG STRAVA_MCP_VERSION=v1.2.0
 # shotah/go-garmin release (DI auth + MCP). Override via GARMIN_MCP_VERSION.
 ARG GARMIN_MCP_VERSION=v0.1.2

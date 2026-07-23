@@ -119,6 +119,10 @@ make logs          # watch it connect, then message your bot
 
 That is the whole loop — no config sync step, no pairing. Bot setup details live in **[docs/telegram.md](docs/telegram.md)**.
 
+> **Kernel only?** If you want gantry without the baked MCP tool image, use
+> [ai-gantry `examples/personal-assistant/`](https://github.com/shotah/ai-gantry/tree/main/examples/personal-assistant)
+> (`make example-pa` there). This repo is the full Tim appliance.
+
 ```bash
 make help          # every target, grouped
 make status        # health check inside the container (exit code)
@@ -183,7 +187,7 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 
 | Guide | What it covers | When you need it |
 | --- | --- | --- |
-| 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, numeric user id, `TELEGRAM_ALLOWED_USERS` allowlist, `/new` session reset, `/status`, history bounds, SQLite memory | **Always** — this is the only chat channel |
+| 📨 **[docs/telegram.md](docs/telegram.md)** | BotFather token, allowlist, `/new` / `/status`, photos, history bounds, SQLite memory | **Always** — Tim’s channel in this compose |
 | 🧠 **[docs/models.md](docs/models.md)** | One OpenAI-compatible chat provider (`LLM_*`); Gemini defaults; swapping chat to xAI/Grok/Ollama | Changing brain / cost tuning |
 | 🎭 **[docs/persona.md](docs/persona.md)** | `persona/SOUL.md` / `USER.md` system prompt — coach mode, identity lock, vs SQLite memory | Shaping Tim's behavior |
 | 🚀 **[docs/deploy.md](docs/deploy.md)** | Ubuntu server prep, UID/GID ownership, OpenSSH on Windows, the `make remote-*` workflow | Running on a real server |
@@ -194,7 +198,7 @@ Everything lives in [`./docs`](docs). Start with Telegram, add the rest as neede
 | 🎵 **[docs/ytmusic.md](docs/ytmusic.md)** | youtube-go-mcp (Go), browser headers, search / library / liked | YouTube Music → `videoId` → Cast |
 | 🔎 **[docs/web-search.md](docs/web-search.md)** | Google Search via Gemini grounding MCP (same API key) | Web answers |
 
-Legacy proposals from the ZeroClaw era ([docs/whatsapp.md](docs/whatsapp.md), [docs/sms.md](docs/sms.md)) are kept for reference; extra channels are an explicit ai-gantry non-goal — one persona, one channel, one container.
+This Tim image pins Telegram (`CHANNEL=telegram`). Upstream [ai-gantry](https://github.com/shotah/ai-gantry) also ships Discord and Slack (still one channel per container, allowlist only). Legacy ZeroClaw-era notes: [docs/whatsapp.md](docs/whatsapp.md), [docs/sms.md](docs/sms.md) — WhatsApp/SMS still need inbound ports and stay out of scope.
 
 Supporting files: [`SECURITY.md`](SECURITY.md) (hardening defaults & reporting).
 

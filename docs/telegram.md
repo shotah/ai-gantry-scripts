@@ -1,8 +1,9 @@
 # Telegram setup (ai-gantry)
 
-Telegram is the **only** chat channel in this stack (by design — one persona,
-one channel, one container). gantry **long-polls** the Bot API — no inbound
-ports, no QR codes, no pairing flow.
+Telegram is Tim’s chat channel here (one persona, one channel, one container).
+Upstream ai-gantry also ships Discord and Slack; this compose stays on
+Telegram. gantry **long-polls** the Bot API — no inbound ports, no QR codes,
+no pairing flow.
 
 ---
 
@@ -78,7 +79,13 @@ gantry keeps the prompt bounded with env knobs (defaults are sane; all in
 Gemini 3.5's ~1M window leaves headroom, but fat tool results still make
 answers worse without these caps. `/new` remains the hard **session** reset.
 
-Streaming replies (Telegram edit-in-place) are opt-in: `STREAM_REPLIES=true`.
+**Photos:** send Tim a picture (caption optional) — Gemini vision handles it.
+If a reply includes a markdown image or a direct `*.png` / `*.jpg` URL, gantry
+can `SendPhoto` it back (caption = remaining text). Needs a vision-capable
+`LLM_MODEL` (Gemini Flash/Pro is fine).
+
+Streaming replies (Telegram edit-in-place) are opt-in: `STREAM_REPLIES=true`
+(safe with tool loops as of gantry ≥ v0.0.5).
 
 ## Long-term memory
 

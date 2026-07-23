@@ -1,7 +1,8 @@
 # SMS / texting for Tim (proposal — legacy research)
 
-**Status:** research — **not wired**, and channels beyond Telegram are an
-explicit ai-gantry non-goal. Kept for reference. Telegram stays the channel.
+**Status:** research — **not wired**. Tim’s compose stays on Telegram; upstream
+gantry has Discord/Slack if you want another container. SMS stays out of scope
+(inbound ports). Kept for reference.
 
 You asked about Twilio (~$1/mo number + ~$0.007/SMS) and whether **Google**
 is a better fit because Tim already uses Gemini + Google Workspace. Short

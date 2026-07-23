@@ -1,9 +1,9 @@
 # WhatsApp setup (legacy — ZeroClaw era)
 
-> **Status: not applicable on ai-gantry.** This doc is kept for reference from
-> the ZeroClaw days. gantry ships Telegram + stdio only — extra channels are an
-> explicit non-goal (one persona, one channel, one container). If a friend
-> needs WhatsApp, that would be a separate runtime, not a flag here.
+> **Status: not applicable on this Tim stack.** Kept for ZeroClaw-era reference.
+> ai-gantry ships Telegram (default), Discord, and Slack — still one channel per
+> container, outbound-only. WhatsApp needs inbound ports / pairing and stays out
+> of scope; use Discord/Slack upstream, or a separate runtime, for friends.
 
 Telegram stays the default channel. WhatsApp is **optional** when friends only
 live on WhatsApp (DM or a small group).
